@@ -1,17 +1,9 @@
 import { NextResponse } from "next/server";
 
-// Force Node.js runtime — pdf-parse dùng fs module, không tương thích Edge runtime
+// Force Node.js runtime
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
-  // pdf-parse/lib/pdf-parse bypasses root index.js which tries to read a test file from disk.
-  // This is the standard serverless fix for pdf-parse v1.x (Next.js, Vercel, Lambda, etc.)
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const pdfParse = require("pdf-parse/lib/pdf-parse") as (
-    buffer: Buffer,
-    options?: object
-  ) => Promise<{ text: string; numpages: number }>;
-
   try {
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
@@ -30,7 +22,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const MAX_SIZE = 10 * 1024 * 1024;
+    const MAX_SIZE = 10 * 1024 * 1024; // 10MB
     if (file.size > MAX_SIZE) {
       return NextResponse.json(
         { success: false, error: "File size must be under 10MB" },
@@ -39,10 +31,15 @@ export async function POST(request: Request) {
     }
 
     const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    const data = await pdfParse(buffer);
+    const uint8Array = new Uint8Array(arrayBuffer);
 
-    const cleanedText = data.text
+    // unpdf: thư viện PDF serverless-compatible, không cần DOM APIs
+    const { getDocumentProxy, extractText } = await import("unpdf");
+
+    const pdf = await getDocumentProxy(uint8Array);
+    const { text, totalPages } = await extractText(pdf, { mergePages: true });
+
+    const cleanedText = text
       .replace(/\r\n/g, "\n")
       .replace(/\n{3,}/g, "\n\n")
       .trim();
@@ -50,8 +47,8 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       text: cleanedText,
-      pageCount: data.numpages,
-      wordCount: cleanedText.split(/\s+/).length,
+      pageCount: totalPages,
+      wordCount: cleanedText.split(/\s+/).filter(Boolean).length,
       filename: file.name,
     });
   } catch (error) {
