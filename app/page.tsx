@@ -1,24 +1,25 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import ConfirmDialog from "@/components/ConfirmDialog.tsx";
-import TaskCard from "@/components/TaskCard.tsx";
-import ExtractForm from "@/components/ExtractForm.tsx";
-import BatchManager from "@/components/BatchManager.tsx";
-import AIStudio from "@/components/AIStudio.tsx";
-import TTSStudio from "@/components/TTSStudio.tsx";
+import ConfirmDialog from "@/components/ConfirmDialog";
+import TaskCard from "@/components/TaskCard";
+import ExtractForm from "@/components/ExtractForm";
+import BatchManager from "@/components/BatchManager";
+import AIStudio from "@/components/AIStudio";
+import TTSStudio from "@/components/TTSStudio";
 
-import TaskList from "@/components/TaskList.tsx";
-import ThemeToggle from "@/components/ThemeToggle.tsx";
-import OnboardingTour from "@/components/OnboardingTour.tsx";
+import TaskList from "@/components/TaskList";
+import ThemeToggle from "@/components/ThemeToggle";
+import OnboardingTour from "@/components/OnboardingTour";
+import { UserMenu } from "@/components/UserMenu";
 
 // Hooks
-import { useToast } from "@/hooks/useToast.ts";
-import { useTaskManager } from "@/hooks/useTaskManager.ts";
-import { useStoryExtractor } from "@/hooks/useStoryExtractor.ts";
-import { useBatchManager } from "@/hooks/useBatchManager.ts";
-import { useAIStudio } from "@/hooks/useAIStudio.ts";
-import { useTTS } from "@/hooks/useTTS.ts";
+import { useToast } from "@/hooks/useToast";
+import { useTaskManager } from "@/hooks/useTaskManager";
+import { useStoryExtractor } from "@/hooks/useStoryExtractor";
+import { useBatchManager } from "@/hooks/useBatchManager";
+import { useAIStudio } from "@/hooks/useAIStudio";
+import { useTTS } from "@/hooks/useTTS";
 
 // --- Icons ---
 const Icons = {
@@ -298,6 +299,7 @@ export default function Home() {
           >
             ?
           </button>
+          <UserMenu />
         </div>
       </header>
 

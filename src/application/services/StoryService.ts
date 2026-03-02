@@ -5,6 +5,7 @@ import { IStoryProvider } from "@src/domain/interfaces";
 import { MonkeyProvider } from "@src/infrastructure/providers/MonkeyProvider";
 import { GenericProvider } from "@src/infrastructure/providers/GenericProvider";
 import { Chapter, StoryContent } from "@src/domain/entities";
+import { chapterCache } from "@src/application/services/ChapterCacheService";
 
 export class StoryService {
     private providers: IStoryProvider[];
@@ -28,14 +29,32 @@ export class StoryService {
     }
 
     async getContent(url: string): Promise<StoryContent> {
+        // ---- [CACHE LAYER] Check Supabase trước ----
+        const cached = await chapterCache.get(url);
+        if (cached) {
+            // Cache HIT: Trả về kết quả đã lưu, không tốn 1 đồng API
+            return {
+                title: "Cached Chapter",
+                content: cached.ai_rewritten_content || cached.raw_content,
+            };
+        }
+
+        // Cache MISS: Đi crawl web và gọi AI như bình thường
         const provider = this.getProvider(url);
         const rawData = await provider.getContent(url);
 
-        // --- AI Rewrite Logic ---
         const rewritten = await this.rewriteContent(rawData.content);
+        const finalContent = rewritten || rawData.content;
+
+        // ---- [CACHE LAYER] Lưu kết quả vào Supabase (Fire & Forget) ----
+        // Không cần await - lưu nền, không làm chậm response trả về cho user
+        chapterCache
+            .set(url, rawData.title, rawData.content, rewritten)
+            .catch(err => console.error("[StoryService] Failed to save cache:", err));
+
         return {
             title: rawData.title,
-            content: rewritten || rawData.content
+            content: finalContent,
         };
     }
 
@@ -60,3 +79,4 @@ export class StoryService {
 }
 
 export const storyService = new StoryService();
+
