@@ -1,7 +1,5 @@
 import { useState } from "react";
 import { Task } from "@/app/types";
-import { storyService } from "@src/application/services/StoryService";
-
 // [CONFIG] Cấu hình cho Batch Job
 const BATCH_CONFIG = {
   CONCURRENCY: 3,       // Số luồng chạy song song
@@ -97,13 +95,18 @@ export function useBatchManager({ addTasks, updateTask, addToast }: UseBatchMana
         if (!isChapterUrl) {
             addToast("Đang quét danh sách chương từ Server...", "info");
             try {
-                // Gọi API lấy danh sách thông qua StoryService (Clean Architecture)
-                const apiJson = await storyService.getChapterList(batchStoryUrl, startChapter, endChapter);
+                // Fetch danh sách chương qua API Route thay vì gọi trực tiếp ở Client
+                const res = await fetch("/api/analyze", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ url: batchStoryUrl, type: "list", start: startChapter, end: endChapter })
+                });
+                const apiJson = await res.json();
                 
-                if (apiJson.success && apiJson.chapters && apiJson.chapters.length > 0) {
+                if (apiJson.success && apiJson.data && apiJson.data.length > 0) {
                      // deno-lint-ignore no-explicit-any
-                    chaptersToDownload = apiJson.chapters
-                        .map((c) => ({ number: c.number, url: c.url }));
+                    chaptersToDownload = apiJson.data
+                        .map((c: any) => ({ number: c.number, url: c.url }));
                     
                     if (chaptersToDownload.length > 0) {
                         smartListSuccess = true;
@@ -163,8 +166,16 @@ export function useBatchManager({ addTasks, updateTask, addToast }: UseBatchMana
             await Promise.all(chunk.map(async (chapItem, idx) => {
                 const currentTaskId = chunkTaskIds[idx];
                 try {
-                    // Gọi hàm fetch qua StoryService
-                    const data = await storyService.getContent(chapItem.url);
+                    // Lấy nội dung chương qua API Route
+                    const res = await fetch("/api/analyze", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ url: chapItem.url })
+                    });
+                    const apiJson = await res.json();
+                    
+                    if (!apiJson.success) throw new Error(apiJson.error || "Unknown error");
+                    const data = apiJson.data;
 
                     if (data.content && !data.content.startsWith("Lỗi")) {
                         updateTask(currentTaskId, {
