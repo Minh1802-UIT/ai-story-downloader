@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useRef } from "react";
 
 interface AIStudioProps {
@@ -170,23 +172,41 @@ export default function AIStudio({
 
     setPdfParsing(true);
     try {
-      const formData = new FormData();
-      formData.append("file", file);
+      const arrayBuffer = await file.arrayBuffer();
 
-      const res = await fetch("/api/parse-pdf", { method: "POST", body: formData });
-      const data = await res.json();
-
-      if (!res.ok || !data.success) {
-        addToast(`PDF parse failed: ${data.error}`, "error");
-        return;
+      // Ensure window.pdfjsLib is loaded (from CDN)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const pdfjsLib = (window as any).pdfjsLib;
+      if (!pdfjsLib) {
+        throw new Error("PDF Library is still loading, please try again in a few seconds.");
       }
 
+      pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      
+      let fullText = "";
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const textContent = await page.getTextContent();
+        const pageText = textContent.items
+          .map((item: any) => item.str)
+          .join(" ");
+        fullText += pageText + "\n\n";
+      }
+
+      const cleanedText = fullText
+        .replace(/\n{3,}/g, "\n\n")
+        .trim();
+
+      const wordCount = cleanedText.split(/\s+/).filter(Boolean).length;
+
       // Thêm vào AI Files (new tab)
-      const newFile = { name: file.name, content: data.text };
+      const newFile = { name: file.name, content: cleanedText };
       setAiFiles((prev) => [...prev, newFile]);
       setActiveTab(aiFiles.length); // Switch to new PDF tab
 
-      addToast(`✅ PDF parsed: ${data.pageCount} pages, ~${data.wordCount.toLocaleString()} words`, "success");
+      addToast(`✅ PDF parsed: ${pdf.numPages} pages, ~${wordCount.toLocaleString()} words`, "success");
     } catch (err) {
       addToast(`Error reading PDF: ${err instanceof Error ? err.message : "Unknown"}`, "error");
     } finally {

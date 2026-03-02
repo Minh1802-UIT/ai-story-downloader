@@ -18,6 +18,8 @@ export const metadata: Metadata = {
   description: "AI Story Downloader",
 };
 
+import Script from "next/script";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -31,6 +33,12 @@ export default function RootLayout({
         <AuthProvider>
           {children}
         </AuthProvider>
+
+        {/* Cdnjs pdf.js cho tính năng Parse PDF Client-side */}
+        <Script 
+          src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"
+          strategy="lazyOnload"
+        />
       </body>
     </html>
   );
