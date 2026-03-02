@@ -304,7 +304,6 @@ export default function Home() {
           >
             ?
           </button>
-          <UserMenu />
         </div>
       </header>
 
