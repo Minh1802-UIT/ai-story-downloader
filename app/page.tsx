@@ -286,15 +286,20 @@ export default function Home() {
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 text-xs font-mono font-bold text-green-600 dark:text-green-500">
+          <div className="flex items-center gap-2 text-xs font-mono font-bold text-green-600 dark:text-green-500 hidden sm:flex">
             <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
             SYSTEM ONLINE
           </div>
+          
+          <UserMenu />
+          
+          <div className="h-6 w-px bg-gray-200 dark:bg-white/10 mx-1"></div>
+          
           <ThemeToggle />
           <button
             type="button"
             onClick={() => setShowOnboarding(true)}
-            className="w-6 h-6 rounded-full bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-white/10 transition-all font-bold text-sm"
+            className="w-8 h-8 rounded-full bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-white/10 transition-all font-bold text-sm"
             title="Restart Onboarding Tour"
           >
             ?
