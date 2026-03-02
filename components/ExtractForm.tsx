@@ -1,14 +1,14 @@
 import React from "react";
 
-// Định nghĩa Props: Những dữ liệu component cha (page.tsx) cần truyền vào
+// Interface definitions for the component props
 interface ExtractFormProps {
-  url: string; // Giá trị URL hiện tại
-  setUrl: (url: string) => void; // Hàm để cập nhật URL
-  loading: boolean; // Trạng thái đang tải
-  onAnalyze: (e: React.FormEvent) => void; // Hàm xử lý khi bấm nút
+  url: string; // Current URL value
+  setUrl: (url: string) => void; // Function to update URL
+  loading: boolean; // Loading state
+  onAnalyze: (e: React.FormEvent) => void; // Handler function on submit
 }
 
-// Icons local để component tự chủ, hoặc có thể import từ một file chung
+// Local icons for component self-containment
 const SubmitIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -63,7 +63,7 @@ export default function ExtractForm({
             Quick Extract
           </h2>
           <p className="text-xs text-gray-600 dark:text-gray-500">
-            Lấy nội dung từ một chương truyện
+            Extract content from a story chapter
           </p>
         </div>
       </div>
@@ -71,7 +71,7 @@ export default function ExtractForm({
       <form onSubmit={onAnalyze} className="space-y-4">
         <div className="space-y-2">
           <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 ml-1 uppercase tracking-wider">
-            URL TRUYỆN
+            STORY URL
           </label>
           <div className="relative group">
             <input
@@ -112,10 +112,23 @@ export default function ExtractForm({
           ) : (
             <>
               <SubmitIcon className="w-4 h-4" />
-              Lấy nội dung ngay
+              Extract Now
             </>
           )}
         </button>
+
+        {/* Indeterminate Progress Bar */}
+        {loading && (
+          <div className="mt-3 space-y-2">
+            <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+              <span>Extracting content...</span>
+              <span className="animate-pulse">Please wait</span>
+            </div>
+            <div className="h-1.5 w-full bg-gray-200 dark:bg-white/10 rounded-full overflow-hidden">
+              <div className="h-full w-1/3 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full animate-[indeterminate_1.5s_ease-in-out_infinite]"></div>
+            </div>
+          </div>
+        )}
       </form>
     </div>
   );

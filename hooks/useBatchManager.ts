@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Task } from "@/app/types";
+import { storyService } from "@src/application/services/StoryService";
 
 // [CONFIG] Cấu hình cho Batch Job
 const BATCH_CONFIG = {
@@ -60,27 +61,7 @@ const generateSmartUrl = (originalUrl: string, newChapterNum: number): string =>
   return parts.join("/");
 };
 
-// [HELPER] Hàm Fetch có cơ chế Retry
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const fetchWithRetry = async (payload: any, retries = BATCH_CONFIG.MAX_RETRIES) => {
-    for (let i = 0; i < retries; i++) {
-        try {
-            const res = await fetch("/api/analyze", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
-            });
-            // Nếu server trả về lỗi 5xx, ném lỗi để retry
-            if (!res.ok && res.status >= 500) throw new Error(`Server error: ${res.status}`);
-            return await res.json();
-        } catch (err) {
-            // Nếu là lần thử cuối cùng thì ném lỗi ra ngoài luôn
-            if (i === retries - 1) throw err;
-            // Đợi một chút trước khi thử lại (Backoff: 1s, 2s, 3s...)
-            await new Promise((r) => setTimeout(r, 1000 * (i + 1)));
-        }
-    }
-};
+
 
 export function useBatchManager({ addTasks, updateTask, addToast }: UseBatchManagerProps) {
   const [batchStoryUrl, setBatchStoryUrl] = useState("");
@@ -116,19 +97,13 @@ export function useBatchManager({ addTasks, updateTask, addToast }: UseBatchMana
         if (!isChapterUrl) {
             addToast("Đang quét danh sách chương từ Server...", "info");
             try {
-                // Gọi API lấy danh sách với cơ chế Retry
-                const apiJson = await fetchWithRetry({ 
-                    url: batchStoryUrl, 
-                    type: "list", 
-                    start: startChapter, 
-                    end: endChapter 
-                });
+                // Gọi API lấy danh sách thông qua StoryService (Clean Architecture)
+                const apiJson = await storyService.getChapterList(batchStoryUrl, startChapter, endChapter);
                 
-                if (apiJson.success && Array.isArray(apiJson.data) && apiJson.data.length > 0) {
+                if (apiJson.success && apiJson.chapters && apiJson.chapters.length > 0) {
                      // deno-lint-ignore no-explicit-any
-                    chaptersToDownload = apiJson.data
-                        .filter((c: any) => c.number >= startChapter && c.number <= endChapter)
-                        .map((c: any) => ({ number: c.number, url: c.url }));
+                    chaptersToDownload = apiJson.chapters
+                        .map((c) => ({ number: c.number, url: c.url }));
                     
                     if (chaptersToDownload.length > 0) {
                         smartListSuccess = true;
@@ -188,19 +163,19 @@ export function useBatchManager({ addTasks, updateTask, addToast }: UseBatchMana
             await Promise.all(chunk.map(async (chapItem, idx) => {
                 const currentTaskId = chunkTaskIds[idx];
                 try {
-                    // Gọi hàm fetch có Retry
-                    const data = await fetchWithRetry({ url: chapItem.url });
+                    // Gọi hàm fetch qua StoryService
+                    const data = await storyService.getContent(chapItem.url);
 
-                    if (data.success) {
+                    if (data.content && !data.content.startsWith("Lỗi")) {
                         updateTask(currentTaskId, {
                             status: "success",
-                            title: `Chapter ${chapItem.number} - ${data.data.title || "Done"}`,
+                            title: `Chapter ${chapItem.number} - ${data.title || "Done"}`,
                             subtitle: "Ready",
                             progress: 100,
-                            data: data.data.content,
+                            data: data.content,
                         });
                     } else {
-                        throw new Error(data.error || "Unknown error");
+                        throw new Error(data.content || "Unknown error");
                     }
                 } catch (e: any) {
                     console.error(`Task ${currentTaskId} failed:`, e);

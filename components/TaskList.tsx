@@ -1,17 +1,7 @@
 import React from "react";
 
 // Task type definition
-interface Task {
-  id: string;
-  type: "extract" | "batch" | "ai";
-  status: "queued" | "processing" | "success" | "failed";
-  title: string;
-  subtitle?: string;
-  progress?: number;
-  data?: string | { filename: string; content: string }[];
-  timestamp: string;
-  error?: string;
-}
+import { Task } from "@/app/types/index.ts";
 
 interface TaskListProps {
   tasks: Task[];
@@ -20,11 +10,21 @@ interface TaskListProps {
   onDownloadAll: () => void;
   onClearAll: () => void;
   addToast: (msg: string, type: "success" | "error" | "info") => void;
+  // TTS Props
+  onGenerateAudio?: (task: Task) => void;
+  onGenerateAudiobook?: () => void;
+  ttsLoading?: boolean;
+  ttsProgress?: number;
+  currentTtsTaskId?: string | null;
   TaskCardComponent: React.ComponentType<{
     task: Task;
     onDownload: (id: string, e: React.MouseEvent) => void;
     onDelete: (id: string, e: React.MouseEvent) => void;
     onCopy: (msg: string) => void;
+    onGenerateAudio?: (task: Task) => void;
+    ttsLoading?: boolean;
+    ttsProgress?: number;
+    currentTtsTaskId?: string | null;
   }>;
 }
 
@@ -78,6 +78,22 @@ const Icons = {
       />
     </svg>
   ),
+  Headphones: (props: React.SVGProps<SVGSVGElement>) => (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={1.5}
+      stroke="currentColor"
+      {...props}
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z"
+      />
+    </svg>
+  ),
 };
 
 export default function TaskList({
@@ -87,8 +103,15 @@ export default function TaskList({
   onDownloadAll,
   onClearAll,
   addToast,
+  onGenerateAudio,
+  onGenerateAudiobook,
+  ttsLoading,
+  ttsProgress,
+  currentTtsTaskId,
   TaskCardComponent,
 }: TaskListProps) {
+  const hasSuccessTasks = tasks.some(t => t.status === "success");
+  
   return (
     <section className="lg:col-span-7 bg-gray-50 dark:bg-[#050505] relative flex flex-col h-full overflow-hidden transition-colors duration-300">
       {/* Header */}
@@ -97,6 +120,26 @@ export default function TaskList({
           Task Matrix
         </h2>
         <div className="flex gap-2">
+          {/* Audiobook Button */}
+          {onGenerateAudiobook && (
+            <button
+              type="button"
+              onClick={onGenerateAudiobook}
+              disabled={!hasSuccessTasks || ttsLoading}
+              className={`p-1.5 rounded transition-colors ${
+                hasSuccessTasks && !ttsLoading
+                  ? "hover:bg-purple-100 dark:hover:bg-purple-500/20 text-gray-500 dark:text-gray-500 hover:text-purple-600 dark:hover:text-purple-400"
+                  : "text-gray-300 dark:text-gray-700 cursor-not-allowed"
+              }`}
+              title={ttsLoading ? `Creating audio... ${ttsProgress}%` : "Create Audiobook (Merge all)"}
+            >
+              {ttsLoading && currentTtsTaskId === "audiobook" ? (
+                <div className="w-4 h-4 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <Icons.Headphones className="w-4 h-4" />
+              )}
+            </button>
+          )}
           <button
             type="button"
             onClick={onDownloadAll}
@@ -120,6 +163,28 @@ export default function TaskList({
       <div className="flex-1 overflow-y-auto p-4 space-y-3 task-scroll relative">
         {tasks.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center select-none opacity-80 z-10 relative">
+            {/* Animated Floating Orbs Background */}
+            <div className="absolute inset-0 z-[-2] overflow-hidden pointer-events-none">
+              {/* Gradient Blob 1 - Purple - Top Left */}
+              <div className="absolute top-[5%] left-[5%] w-[500px] h-[500px] bg-purple-500/50 dark:bg-purple-600/40 rounded-full blur-[80px] animate-[float_3s_ease-in-out_infinite]"></div>
+              {/* Gradient Blob 2 - Blue - Bottom Right */}
+              <div className="absolute bottom-[5%] right-[5%] w-[450px] h-[450px] bg-blue-500/50 dark:bg-blue-600/40 rounded-full blur-[80px] animate-[float_4s_ease-in-out_infinite_reverse]"></div>
+              {/* Gradient Blob 3 - Pink - Center */}
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-pink-500/60 dark:bg-pink-600/50 rounded-full blur-[60px] animate-[pulse_2s_ease-in-out_infinite]"></div>
+              {/* Gradient Blob 4 - Cyan - Top Right */}
+              <div className="absolute top-[15%] right-[15%] w-[300px] h-[300px] bg-cyan-500/40 dark:bg-cyan-600/35 rounded-full blur-[60px] animate-[float_3.5s_ease-in-out_infinite_0.5s]"></div>
+              
+              {/* Floating Particles - Very visible with glow */}
+              <div className="absolute top-[12%] left-[18%] w-5 h-5 bg-purple-400 dark:bg-purple-400 rounded-full shadow-[0_0_15px_5px_rgba(168,85,247,0.6)] animate-[floatParticle_2s_ease-in-out_infinite]"></div>
+              <div className="absolute top-[50%] left-[25%] w-4 h-4 bg-blue-400 dark:bg-blue-400 rounded-full shadow-[0_0_15px_5px_rgba(96,165,250,0.6)] animate-[floatParticle_2.5s_ease-in-out_infinite_0.3s]"></div>
+              <div className="absolute top-[22%] right-[22%] w-6 h-6 bg-pink-400 dark:bg-pink-400 rounded-full shadow-[0_0_20px_5px_rgba(244,114,182,0.6)] animate-[floatParticle_2.2s_ease-in-out_infinite_0.2s]"></div>
+              <div className="absolute top-[60%] right-[30%] w-5 h-5 bg-purple-400 dark:bg-purple-400 rounded-full shadow-[0_0_15px_5px_rgba(168,85,247,0.6)] animate-[floatParticle_3s_ease-in-out_infinite_0.5s]"></div>
+              <div className="absolute top-[35%] left-[50%] w-4 h-4 bg-cyan-400 dark:bg-cyan-400 rounded-full shadow-[0_0_15px_5px_rgba(34,211,238,0.6)] animate-[floatParticle_1.8s_ease-in-out_infinite_0.1s]"></div>
+              <div className="absolute top-[72%] left-[45%] w-5 h-5 bg-pink-400 dark:bg-pink-400 rounded-full shadow-[0_0_15px_5px_rgba(244,114,182,0.6)] animate-[floatParticle_2.5s_ease-in-out_infinite_0.4s]"></div>
+              <div className="absolute top-[85%] left-[20%] w-4 h-4 bg-blue-400 dark:bg-blue-400 rounded-full shadow-[0_0_15px_5px_rgba(96,165,250,0.6)] animate-[floatParticle_2s_ease-in-out_infinite_0.6s]"></div>
+              <div className="absolute top-[8%] left-[60%] w-5 h-5 bg-purple-400 dark:bg-purple-400 rounded-full shadow-[0_0_15px_5px_rgba(168,85,247,0.6)] animate-[floatParticle_2.8s_ease-in-out_infinite_0.3s]"></div>
+            </div>
+
             {/* Circuit Pattern Background */}
             <div className="absolute inset-0 z-[-1] opacity-[0.03] pointer-events-none overflow-hidden flex items-center justify-center">
               <svg
@@ -195,6 +260,10 @@ export default function TaskList({
               onDownload={onDownload}
               onDelete={onDelete}
               onCopy={(msg) => addToast(msg, "success")}
+              onGenerateAudio={onGenerateAudio}
+              ttsLoading={ttsLoading}
+              ttsProgress={ttsProgress}
+              currentTtsTaskId={currentTtsTaskId}
             />
           ))
         )}

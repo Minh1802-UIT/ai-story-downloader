@@ -1,5 +1,5 @@
 import React from "react";
-// Định nghĩa các cổng kết nối (Props)
+// Props interface definitions
 interface BatchManagerProps {
   batchStoryUrl: string;
   setBatchStoryUrl: (url: string) => void;
@@ -10,7 +10,7 @@ interface BatchManagerProps {
   loading: boolean;
   onRunBatch: () => void;
 }
-// Icon Layers (Copy từ page.tsx sang)
+// Layers Icon (copied from page.tsx)
 const LayersIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -77,7 +77,7 @@ export default function BatchManager({
     <div className="space-y-6 animate-in fade-in slide-in-from-left-4 duration-300">
       {/* Input URL */}
       <div>
-        <label className="text-xs font-bold text-gray-600 dark:text-gray-500 mb-2 block">
+        <label className="text-sm font-bold text-gray-600 dark:text-gray-400 mb-2 block">
           STORY BASE URL
         </label>
         <div className="relative">
@@ -86,13 +86,13 @@ export default function BatchManager({
             value={batchStoryUrl}
             onChange={(e) => setBatchStoryUrl(e.target.value)}
             placeholder="https://monkeydtruyen.com/..."
-            className="w-full bg-gray-50 dark:bg-[#111] border border-gray-300 dark:border-white/10 rounded-lg p-3 pl-10 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-cyan-500 dark:focus:border-cyan-500/50 transition-colors"
+            className="w-full bg-gray-50 dark:bg-[#111] border border-gray-300 dark:border-white/10 rounded-lg p-3 pl-10 text-base text-gray-900 dark:text-white focus:outline-none focus:border-cyan-500 dark:focus:border-cyan-500/50 transition-colors"
           />
           <div className="absolute left-3 top-3 text-gray-400 dark:text-gray-600">
-            <LayersIcon className="w-4 h-4" />
+            <LayersIcon className="w-5 h-5" />
           </div>
         </div>
-        <p className="text-[10px] text-gray-500 dark:text-gray-600 mt-1 ml-1">
+        <p className="text-xs text-gray-500 dark:text-gray-500 mt-1 ml-1">
           Example: https://monkeydtruyen.com/ten-truyen.html
         </p>
 
@@ -118,25 +118,25 @@ export default function BatchManager({
       {/* Input Range: Start & End */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="text-xs font-bold text-gray-600 dark:text-gray-500 mb-2 block">
+        <label className="text-sm font-bold text-gray-600 dark:text-gray-400 mb-2 block">
             START
           </label>
           <input
             type="number"
             value={startChapter}
             onChange={(e) => setStartChapter(Number(e.target.value))}
-            className="w-full bg-gray-50 dark:bg-[#111] border border-gray-300 dark:border-white/10 rounded-lg p-3 text-sm text-center focus:border-cyan-500 dark:focus:border-cyan-500/50 outline-none text-gray-900 dark:text-white"
+            className="w-full bg-gray-50 dark:bg-[#111] border border-gray-300 dark:border-white/10 rounded-lg p-3 text-base text-center focus:border-cyan-500 dark:focus:border-cyan-500/50 outline-none text-gray-900 dark:text-white"
           />
         </div>
         <div>
-          <label className="text-xs font-bold text-gray-600 dark:text-gray-500 mb-2 block">
+          <label className="text-sm font-bold text-gray-600 dark:text-gray-400 mb-2 block">
             END
           </label>
           <input
             type="number"
             value={endChapter}
             onChange={(e) => setEndChapter(Number(e.target.value))}
-            className="w-full bg-gray-50 dark:bg-[#111] border border-gray-300 dark:border-white/10 rounded-lg p-3 text-sm text-center focus:border-cyan-500 dark:focus:border-cyan-500/50 outline-none text-gray-900 dark:text-white"
+            className="w-full bg-gray-50 dark:bg-[#111] border border-gray-300 dark:border-white/10 rounded-lg p-3 text-base text-center focus:border-cyan-500 dark:focus:border-cyan-500/50 outline-none text-gray-900 dark:text-white"
           />
         </div>
       </div>
@@ -145,22 +145,22 @@ export default function BatchManager({
         type="button"
         onClick={onRunBatch}
         disabled={loading}
-        className="w-full py-3 bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-bold text-sm rounded-lg hover:shadow-lg hover:shadow-cyan-500/20 transition-all flex items-center justify-center gap-2"
+        className="w-full py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold text-sm rounded-lg hover:shadow-lg hover:shadow-purple-500/20 transition-all flex items-center justify-center gap-2"
       >
         {loading ? "Processing Batch..." : "RUN BATCH SEQUENCE"}
       </button>
       {/* Sequence Preview */}
       <div className="mt-4">
         <div className="flex justify-between items-end mb-2">
-          <label className="text-[10px] font-bold text-gray-500 dark:text-gray-600 tracking-wider">
+          <label className="text-xs font-bold text-gray-500 dark:text-gray-500 tracking-wider">
             SEQUENCE PREVIEW
           </label>
-          <span className="text-[10px] text-cyan-600 dark:text-cyan-500 font-mono">
+          <span className="text-xs text-cyan-600 dark:text-cyan-500 font-mono">
             Total: {Math.max(0, endChapter - startChapter + 1)} Chaps
           </span>
         </div>
-        <div className="bg-gray-100 dark:bg-[#0f0f0f] rounded-lg border border-gray-200 dark:border-white/5 p-3 flex flex-wrap gap-1 max-h-[120px] overflow-y-auto task-scroll">
-          {/* Logic render preview giữ nguyên */}
+        <div className="bg-gray-100 dark:bg-[#0f0f0f] rounded-lg border border-gray-200 dark:border-white/5 p-4 flex flex-wrap gap-2 max-h-[150px] overflow-y-auto task-scroll">
+          {/* Preview render logic */}
           {Array.from(
             {
               length: Math.min(50, Math.max(0, endChapter - startChapter + 1)),
@@ -169,18 +169,18 @@ export default function BatchManager({
           ).map((num) => (
             <div
               key={num}
-              className="bg-cyan-900/20 border border-cyan-500/20 text-cyan-300 text-[9px] px-1.5 py-0.5 rounded font-mono"
+              className="bg-cyan-500/20 border border-cyan-400/40 text-cyan-600 dark:text-cyan-300 text-sm px-3 py-1.5 rounded-lg font-mono font-bold shadow-sm"
             >
               #{num}
             </div>
           ))}
           {endChapter - startChapter + 1 > 50 && (
-            <span className="text-[9px] text-gray-600 flex items-center px-1">
+            <span className="text-sm text-gray-500 dark:text-gray-400 flex items-center px-2 font-medium">
               ... +{endChapter - startChapter + 1 - 50} more
             </span>
           )}
           {endChapter < startChapter && (
-            <span className="text-[10px] text-red-500 italic">
+            <span className="text-sm text-red-500 italic font-medium">
               Invalid Range
             </span>
           )}

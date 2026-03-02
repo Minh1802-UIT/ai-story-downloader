@@ -3,7 +3,12 @@
   "imports": {
     "@src/config/env": "./src/config/env.ts",
     "@src/repositories/genation": "./src/repositories/genation.ts",
-    "@src/services/monkeyService": "./src/services/monkeyService.ts"
+    "@src/services/monkeyService": "./src/services/monkeyService.ts",
+    "@src/domain/entities": "./src/domain/entities.ts",
+    "@src/domain/interfaces": "./src/domain/interfaces.ts",
+    "@src/infrastructure/providers/MonkeyProvider": "./src/infrastructure/providers/MonkeyProvider.ts",
+    "@src/infrastructure/providers/GenericProvider": "./src/infrastructure/providers/GenericProvider.ts",
+    "@src/application/services/StoryService": "./src/application/services/StoryService.ts"
   },
   "tasks": {
     "dev": "next dev",

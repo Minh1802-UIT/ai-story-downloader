@@ -1,22 +1,24 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import ConfirmDialog from "@/components/ConfirmDialog";
-import TaskCard from "@/components/TaskCard";
-import ExtractForm from "@/components/ExtractForm";
-import BatchManager from "@/components/BatchManager";
-import AIStudio from "@/components/AIStudio";
+import ConfirmDialog from "@/components/ConfirmDialog.tsx";
+import TaskCard from "@/components/TaskCard.tsx";
+import ExtractForm from "@/components/ExtractForm.tsx";
+import BatchManager from "@/components/BatchManager.tsx";
+import AIStudio from "@/components/AIStudio.tsx";
+import TTSStudio from "@/components/TTSStudio.tsx";
 
-import TaskList from "@/components/TaskList";
-import ThemeToggle from "@/components/ThemeToggle";
-import OnboardingTour from "@/components/OnboardingTour";
+import TaskList from "@/components/TaskList.tsx";
+import ThemeToggle from "@/components/ThemeToggle.tsx";
+import OnboardingTour from "@/components/OnboardingTour.tsx";
 
 // Hooks
-import { useToast } from "@/hooks/useToast";
-import { useTaskManager } from "@/hooks/useTaskManager";
-import { useStoryExtractor } from "@/hooks/useStoryExtractor";
-import { useBatchManager } from "@/hooks/useBatchManager";
-import { useAIStudio } from "@/hooks/useAIStudio";
+import { useToast } from "@/hooks/useToast.ts";
+import { useTaskManager } from "@/hooks/useTaskManager.ts";
+import { useStoryExtractor } from "@/hooks/useStoryExtractor.ts";
+import { useBatchManager } from "@/hooks/useBatchManager.ts";
+import { useAIStudio } from "@/hooks/useAIStudio.ts";
+import { useTTS } from "@/hooks/useTTS.ts";
 
 // --- Icons ---
 const Icons = {
@@ -121,11 +123,27 @@ const Icons = {
       />
     </svg>
   ),
+  Mic: (props: React.SVGProps<SVGSVGElement>) => (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={1.5}
+      stroke="currentColor"
+      {...props}
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z"
+      />
+    </svg>
+  ),
 };
 
 export default function Home() {
   // --- STATE: GLOBAL & LAYOUT ---
-  const [activeTab, setActiveTab] = useState<"extract" | "batch" | "ai">(
+  const [activeTab, setActiveTab] = useState<"extract" | "batch" | "ai" | "tts">(
     "extract"
   );
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -146,7 +164,6 @@ export default function Home() {
   const { toasts, addToast, removeToast } = useToast();
   const {
     tasks,
-    setTasks,
     addTask,
     addTasks,
     updateTask,
@@ -203,6 +220,15 @@ export default function Home() {
     addToast,
   });
 
+  // TTS Hook
+  const {
+    ttsLoading,
+    ttsProgress,
+    currentTaskId: currentTtsTaskId,
+    generateSingleAudio,
+    generateFullAudiobook,
+  } = useTTS({ addToast });
+
   // Auto-trigger onboarding
   useEffect(() => {
     const hasCompletedTour = localStorage.getItem(
@@ -252,15 +278,15 @@ export default function Home() {
               />
             </svg>
           </div>
-          <h1 className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 via-gray-700 to-gray-500 dark:from-white dark:via-gray-200 dark:to-gray-400">
+          <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 via-gray-700 to-gray-500 dark:from-white dark:via-gray-200 dark:to-gray-400">
             STORY COMMANDER{" "}
-            <span className="text-[10px] text-purple-500 align-top">V2</span>
+            <span className="text-xs text-purple-500 align-top">V2</span>
           </h1>
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 text-[10px] font-mono font-bold text-green-600 dark:text-green-500">
-            <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
+          <div className="flex items-center gap-2 text-xs font-mono font-bold text-green-600 dark:text-green-500">
+            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
             SYSTEM ONLINE
           </div>
           <ThemeToggle />
@@ -280,11 +306,11 @@ export default function Home() {
         <section className="lg:col-span-5 bg-white dark:bg-[#0a0a0a] border-r border-gray-200 dark:border-white/10 flex flex-col h-full transition-colors duration-300">
           {/* Tabs */}
           <div className="flex border-b border-gray-200 dark:border-white/10">
-            {["extract", "batch", "ai"].map((tab) => (
+            {["extract", "batch", "ai", "tts"].map((tab) => (
               <button
                 key={tab}
                 type="button"
-                onClick={() => setActiveTab(tab as "extract" | "batch" | "ai")}
+                onClick={() => setActiveTab(tab as "extract" | "batch" | "ai" | "tts")}
                 className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider transition-all ${
                   activeTab === tab
                     ? "bg-purple-50 dark:bg-white/5 text-purple-600 dark:text-purple-400 border-b-2 border-purple-500"
@@ -305,7 +331,12 @@ export default function Home() {
                 {tab === "ai" && (
                   <div className="flex items-center justify-center gap-2">
                     <Icons.Sparkles className="w-4 h-4" />{" "}
-                    <span>AI Studio</span>
+                    <span>AI</span>
+                  </div>
+                )}
+                {tab === "tts" && (
+                  <div className="flex items-center justify-center gap-2">
+                    <Icons.Mic className="w-4 h-4" /> <span>TTS</span>
                   </div>
                 )}
               </button>
@@ -359,6 +390,11 @@ export default function Home() {
                 addToast={addToast}
               />
             )}
+
+            {/* MODE: TTS STUDIO */}
+            {activeTab === "tts" && (
+              <TTSStudio addToast={addToast} />
+            )}
           </div>
         </section>
 
@@ -376,12 +412,17 @@ export default function Home() {
           onDownloadAll={downloadAllTasks}
           onClearAll={handleClearAll}
           addToast={addToast}
+          onGenerateAudio={(task) => generateSingleAudio(task)}
+          onGenerateAudiobook={() => generateFullAudiobook(tasks)}
+          ttsLoading={ttsLoading}
+          ttsProgress={ttsProgress}
+          currentTtsTaskId={currentTtsTaskId}
           TaskCardComponent={TaskCard}
         />
       </main>
 
       {/* TOASTS */}
-      <div className="fixed top-6 right-6 z-[110] flex flex-col gap-2">
+      <div className="fixed top-6 right-6 z-110 flex flex-col gap-2">
         {toasts.map((toast) => {
           const progress = toast.duration
             ? Math.max(
