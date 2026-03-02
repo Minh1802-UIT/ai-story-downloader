@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 
 interface AIStudioProps {
   aiPrompt: string;
@@ -156,6 +156,44 @@ export default function AIStudio({
 }: AIStudioProps) {
   // Active tab: "manual" for manual input, or file index
   const [activeTab, setActiveTab] = useState<TabType>("manual");
+  const [pdfParsing, setPdfParsing] = useState(false);
+  const pdfInputRef = useRef<HTMLInputElement>(null);
+
+  // Handle PDF upload → call /api/parse-pdf → inject text vào context
+  const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.name.endsWith(".pdf")) {
+      addToast("Only PDF files are supported", "error");
+      return;
+    }
+
+    setPdfParsing(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch("/api/parse-pdf", { method: "POST", body: formData });
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        addToast(`PDF parse failed: ${data.error}`, "error");
+        return;
+      }
+
+      // Thêm vào AI Files (new tab)
+      const newFile = { name: file.name, content: data.text };
+      setAiFiles((prev) => [...prev, newFile]);
+      setActiveTab(aiFiles.length); // Switch to new PDF tab
+
+      addToast(`✅ PDF parsed: ${data.pageCount} pages, ~${data.wordCount.toLocaleString()} words`, "success");
+    } catch (err) {
+      addToast(`Error reading PDF: ${err instanceof Error ? err.message : "Unknown"}`, "error");
+    } finally {
+      setPdfParsing(false);
+      if (pdfInputRef.current) pdfInputRef.current.value = "";
+    }
+  };
 
   const removeFile = (index: number) => {
     setAiFiles((prev) => prev.filter((_, i) => i !== index));
@@ -239,6 +277,20 @@ export default function AIStudio({
                 onChange={onFileSelect}
               />
             </label>
+            {/* PDF Upload Button */}
+            <button
+              type="button"
+              onClick={() => pdfInputRef.current?.click()}
+              disabled={pdfParsing}
+              className="flex items-center gap-1.5 text-xs text-red-600 dark:text-red-400 font-bold cursor-pointer hover:text-red-700 dark:hover:text-red-300 transition-colors bg-red-500/10 px-3 py-1.5 rounded border border-red-500/20 disabled:opacity-60"
+            >
+              {pdfParsing ? (
+                <><div className="w-3 h-3 border border-red-400 border-t-transparent rounded-full animate-spin" />Parsing...</>
+              ) : (
+                <>📄 LOAD PDF</>
+              )}
+            </button>
+            <input ref={pdfInputRef} type="file" accept=".pdf" className="hidden" onChange={handlePdfUpload} />
           </div>
 
           {/* Tab Bar */}
