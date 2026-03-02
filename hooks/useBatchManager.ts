@@ -165,37 +165,50 @@ export function useBatchManager({ addTasks, updateTask, addToast }: UseBatchMana
 
             await Promise.all(chunk.map(async (chapItem, idx) => {
                 const currentTaskId = chunkTaskIds[idx];
-                try {
-                    // Lấy nội dung chương qua API Route
-                    const res = await fetch("/api/analyze", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ url: chapItem.url })
-                    });
-                    const apiJson = await res.json();
-                    
-                    if (!apiJson.success) throw new Error(apiJson.error || "Unknown error");
-                    const data = apiJson.data;
+                let attempt = 0;
+                let success = false;
 
-                    if (data.content && !data.content.startsWith("Lỗi")) {
-                        updateTask(currentTaskId, {
-                            status: "success",
-                            title: `Chapter ${chapItem.number} - ${data.title || "Done"}`,
-                            subtitle: "Ready",
-                            progress: 100,
-                            data: data.content,
+                while (attempt < BATCH_CONFIG.MAX_RETRIES && !success) {
+                    try {
+                        attempt++;
+                        // Lấy nội dung chương qua API Route
+                        const res = await fetch("/api/analyze", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ url: chapItem.url })
                         });
-                    } else {
-                        throw new Error(data.content || "Unknown error");
+                        const apiJson = await res.json();
+                        
+                        if (!apiJson.success) throw new Error(apiJson.error || "Unknown error");
+                        const data = apiJson.data;
+
+                        if (data.content && !data.content.startsWith("Lỗi")) {
+                            updateTask(currentTaskId, {
+                                status: "success",
+                                title: `Chapter ${chapItem.number} - ${data.title || "Done"}`,
+                                subtitle: "Ready",
+                                progress: 100,
+                                data: data.content,
+                            });
+                            success = true;
+                        } else {
+                            throw new Error(data.content || "Unknown error");
+                        }
+                    } catch (e: any) {
+                        console.error(`Task ${currentTaskId} attempt ${attempt} failed:`, e);
+                        if (attempt >= BATCH_CONFIG.MAX_RETRIES) {
+                            updateTask(currentTaskId, {
+                                status: "failed",
+                                subtitle: `Failed after ${attempt} retries`,
+                                error: e.message,
+                                progress: 0
+                            });
+                        } else {
+                            updateTask(currentTaskId, { subtitle: `Retrying (${attempt}/${BATCH_CONFIG.MAX_RETRIES})...` });
+                            // Nghỉ một chút trước khi thử lại
+                            await new Promise(r => setTimeout(r, 1000));
+                        }
                     }
-                } catch (e: any) {
-                    console.error(`Task ${currentTaskId} failed:`, e);
-                    updateTask(currentTaskId, {
-                        status: "failed",
-                        subtitle: "Failed after retries",
-                        error: e.message,
-                        progress: 0
-                    });
                 }
             }));
 

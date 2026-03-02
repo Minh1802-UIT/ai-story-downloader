@@ -14,16 +14,28 @@ const SPAM_REGEX = new RegExp(SPAM_KEYWORDS.join("|"), "i");
 
 export const monkeyService = () => {
 
-  // 1. HELPER: Giải mã CSS Content an toàn
+  // 1. HELPER: Giải mã CSS Content an toàn (Tối ưu từ JSON.parse sang Regex Unescape)
   const cleanCssContent = (text: string): string => {
     if (!text) return "";
-    try {
-        const wrapped = text.startsWith('"') || text.startsWith("'") ? text : `"${text}"`;
-        const jsonStr = wrapped.replace(/^'|'$/g, '"'); 
-        return JSON.parse(jsonStr);
-    } catch (e) {
-        return text.replace(/^['"]|['"]$/g, "").replace(/\\"/g, '"');
-    }
+    let result = text.replace(/^['"]|['"]$/g, "");
+    
+    // Unescape unicode dạng \uXXXX
+    result = result.replace(/\\u([\dA-F]{4})/gi, (match, grp) => {
+        return String.fromCharCode(parseInt(grp, 16));
+    });
+    
+    // Unescape các kí tự đặc biệt thông thường
+    return result.replace(/\\(["'\\nrtbfv])/g, (match, char) => {
+        switch (char) {
+            case "n": return "\n";
+            case "r": return "\r";
+            case "t": return "\t";
+            case "b": return "\b";
+            case "f": return "\f";
+            case "v": return "\v";
+            default: return char;
+        }
+    });
   };
 
   // 2. WORKER: Lấy nội dung chi tiết chương
