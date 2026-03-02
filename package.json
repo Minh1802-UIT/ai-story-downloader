@@ -11,13 +11,12 @@
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "@supabase/supabase-js": "^2.98.0",
-    "@types/pdf-parse": "^1.1.5",
     "cheerio": "^1.1.2",
     "edge-tts": "^1.0.1",
     "msedge-tts": "^2.0.3",
     "next": "^15.5.9",
     "openai": "^6.15.0",
-    "pdf-parse": "^2.4.5",
+    "pdf-parse": "^1.1.1",
     "react": "19.0.0",
     "react-dom": "19.0.0"
   },

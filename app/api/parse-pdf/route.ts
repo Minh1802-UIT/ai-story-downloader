@@ -4,6 +4,14 @@ import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
+  // pdf-parse/lib/pdf-parse bypasses root index.js which tries to read a test file from disk.
+  // This is the standard serverless fix for pdf-parse v1.x (Next.js, Vercel, Lambda, etc.)
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const pdfParse = require("pdf-parse/lib/pdf-parse") as (
+    buffer: Buffer,
+    options?: object
+  ) => Promise<{ text: string; numpages: number }>;
+
   try {
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
@@ -29,12 +37,6 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-
-    // Dynamic require bên trong hàm để tránh Edge runtime crash
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const pdfParse = require("pdf-parse") as (
-      buffer: Buffer
-    ) => Promise<{ text: string; numpages: number }>;
 
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
