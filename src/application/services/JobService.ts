@@ -90,6 +90,33 @@ export async function processNextChunk(
     processedCount + CHUNK_SIZE
   );
 
+  // --- HỆ THỐNG CREDIT: Kiểm tra và Trừ Credit ---
+  if (job.user_id && chunkUrls.length > 0) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("credits")
+      .eq("id", job.user_id)
+      .single();
+
+    if (!profile || profile.credits < chunkUrls.length) {
+      // Hết Credit -> Fail Job
+      await supabase
+        .from("jobs")
+        .update({ 
+          status: "FAILED", 
+          result_data: { ...payload, error: "Tài khoản của bạn đã hết Credit." } 
+        })
+        .eq("id", jobId);
+      return { done: true, progress: Math.round((processedCount / total) * 100), total };
+    }
+
+    // Trừ credit tương ứng với số chương trong chunk xử lý đợt này
+    await supabase
+      .from("profiles")
+      .update({ credits: profile.credits - chunkUrls.length })
+      .eq("id", job.user_id);
+  }
+
   // 5. Xử lý tuần tự từng chương trong chunk
   const newDownloadedUrls = [...downloadedUrls];
   let newProcessedCount = processedCount;

@@ -12,6 +12,7 @@
     "@google/generative-ai": "^0.24.1",
     "@supabase/supabase-js": "^2.98.0",
     "cheerio": "^1.1.2",
+    "dotenv": "^17.3.1",
     "edge-tts": "^1.0.1",
     "msedge-tts": "^2.0.3",
     "next": "^15.5.9",
