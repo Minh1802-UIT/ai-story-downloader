@@ -14,28 +14,16 @@ const SPAM_REGEX = new RegExp(SPAM_KEYWORDS.join("|"), "i");
 
 export const monkeyService = () => {
 
-  // 1. HELPER: Giải mã CSS Content an toàn (Tối ưu từ JSON.parse sang Regex Unescape)
+  // 1. HELPER: Giải mã CSS Content an toàn
   const cleanCssContent = (text: string): string => {
     if (!text) return "";
-    let result = text.replace(/^['"]|['"]$/g, "");
-    
-    // Unescape unicode dạng \uXXXX
-    result = result.replace(/\\u([\dA-F]{4})/gi, (match, grp) => {
-        return String.fromCharCode(parseInt(grp, 16));
-    });
-    
-    // Unescape các kí tự đặc biệt thông thường
-    return result.replace(/\\(["'\\nrtbfv])/g, (match, char) => {
-        switch (char) {
-            case "n": return "\n";
-            case "r": return "\r";
-            case "t": return "\t";
-            case "b": return "\b";
-            case "f": return "\f";
-            case "v": return "\v";
-            default: return char;
-        }
-    });
+    try {
+        const wrapped = text.startsWith('"') || text.startsWith("'") ? text : `"${text}"`;
+        const jsonStr = wrapped.replace(/^'|'$/g, '"'); 
+        return JSON.parse(jsonStr);
+    } catch (e) {
+        return text.replace(/^['"]|['"]$/g, "").replace(/\\"/g, '"');
+    }
   };
 
   // 2. WORKER: Lấy nội dung chi tiết chương
@@ -68,7 +56,7 @@ export const monkeyService = () => {
 
       // --- Trích xuất nội dung ---
       let fullContent = "";
-      const contentContainer = $(".ql-editor.inner, .ql-editor, .content-container, #content, .reading-content, .chapter-c, #chapter-c, #chapter-content");
+      const contentContainer = $(".ql-editor.inner, .ql-editor, .content-container, #content, .reading-content, .chapter-c, #chapter-c, .chapter-content");
       
       if (contentContainer.length) {
          contentContainer.find("script, style, .ads, div[class*='ads'], .chapter-nav, .nav-chapter").remove();
@@ -154,7 +142,7 @@ export const monkeyService = () => {
         const response = await client.chat.completions.create({
             model: "gemini-2.0-flash",
             messages: [
-                { role: "system", content: "Bạn là một người viết truyện tiếng Việt, mục đích của bạn là viết lại truyện theo góc nhìn thức nhất cho đọc giả nghe audio truyện, chỉ trả lời đúng mục chính không chào hỏi dẫn dắt" },
+                { role: "system", content: "Bạn là một người viết truyện tiếng Việt, mục đích của bạn là viết lại truyện theo góc nhìn thứ nhất cho độc giả nghe audio truyện, chỉ trả lời đúng mục chính không chào hỏi dẫn dắt" },
                 { role: "user", content: content },
             ],
         });
