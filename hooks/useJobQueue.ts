@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
+import { supabase } from "@src/config/supabase";
 
 export type QueueStatus = "idle" | "creating" | "processing" | "completed" | "failed";
 
@@ -86,10 +87,17 @@ export function useJobQueue(): UseJobQueueReturn {
         setStatus("creating");
         setTotal(payload.chapterUrls.length);
 
-        // 1. Tạo Job trong DB
+        // 1. Lấy token auth
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token || "";
+
+        // 2. Tạo Job trong DB
         const res = await fetch("/api/jobs", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json",
+            ...(token ? { "Authorization": `Bearer ${token}` } : {})
+          },
           body: JSON.stringify(payload),
         });
 

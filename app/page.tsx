@@ -7,11 +7,14 @@ import ExtractForm from "@/components/ExtractForm";
 import BatchManager from "@/components/BatchManager";
 import AIStudio from "@/components/AIStudio";
 import TTSStudio from "@/components/TTSStudio";
+import JobHistory from "@/components/JobHistory";
 
 import TaskList from "@/components/TaskList";
 import ThemeToggle from "@/components/ThemeToggle";
 import OnboardingTour from "@/components/OnboardingTour";
 import { UserMenu } from "@/components/UserMenu";
+import LandingPage from "@/components/LandingPage";
+import { useAuth } from "@/components/AuthProvider";
 
 // Hooks
 import { useToast } from "@/hooks/useToast";
@@ -140,11 +143,18 @@ const Icons = {
       />
     </svg>
   ),
+  Clock: (props: React.SVGProps<SVGSVGElement>) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  ),
 };
 
 export default function Home() {
+  const { user, loading: authLoading } = useAuth();
+  
   // --- STATE: GLOBAL & LAYOUT ---
-  const [activeTab, setActiveTab] = useState<"extract" | "batch" | "ai" | "tts">(
+  const [activeTab, setActiveTab] = useState<"extract" | "batch" | "ai" | "tts" | "history">(
     "extract"
   );
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -259,6 +269,44 @@ export default function Home() {
     });
   };
 
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-[#0a0a0a]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-gray-500 dark:text-gray-400 font-medium">Đang tải...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="flex flex-col h-screen bg-gray-50 dark:bg-[#0a0a0a] transition-colors duration-300">
+        <header className="h-14 border-b border-gray-200 dark:border-white/10 flex items-center justify-between px-6 bg-white dark:bg-[#0a0a0a] shrink-0 z-50">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center shadow-lg shadow-purple-500/20">
+              <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </div>
+            <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 via-gray-700 to-gray-500 dark:from-white dark:via-gray-200 dark:to-gray-400">
+              STORY COMMANDER{" "}
+              <span className="text-xs text-purple-500 align-top">V2</span>
+            </h1>
+          </div>
+          <div className="flex items-center gap-4">
+            <UserMenu />
+            <ThemeToggle />
+          </div>
+        </header>
+        <div className="flex-1 overflow-y-auto">
+          <LandingPage />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-screen bg-gray-50 dark:bg-[#0a0a0a] transition-colors duration-300">
       {/* HEADER */}
@@ -299,7 +347,7 @@ export default function Home() {
           <button
             type="button"
             onClick={() => setShowOnboarding(true)}
-            className="w-8 h-8 rounded-full bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-white/10 transition-all font-bold text-sm"
+            className="w-8 h-8 rounded-full bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-white/10 transition-all font-bold text-sm hidden sm:flex"
             title="Restart Onboarding Tour"
           >
             ?
@@ -307,16 +355,16 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="flex-1 grid grid-cols-1 lg:grid-cols-12 overflow-hidden">
+      <main className="flex-1 flex flex-col lg:grid lg:grid-cols-12 overflow-y-auto lg:overflow-hidden">
         {/* LEFT: COMMAND CENTER */}
-        <section className="lg:col-span-5 bg-white dark:bg-[#0a0a0a] border-r border-gray-200 dark:border-white/10 flex flex-col h-full transition-colors duration-300">
+        <section className="lg:col-span-5 bg-white dark:bg-[#0a0a0a] border-r border-gray-200 dark:border-white/10 flex flex-col min-h-[550px] lg:h-full shrink-0 transition-colors duration-300">
           {/* Tabs */}
           <div className="flex border-b border-gray-200 dark:border-white/10">
-            {["extract", "batch", "ai", "tts"].map((tab) => (
+            {["extract", "batch", "ai", "tts", "history"].map((tab) => (
               <button
                 key={tab}
                 type="button"
-                onClick={() => setActiveTab(tab as "extract" | "batch" | "ai" | "tts")}
+                onClick={() => setActiveTab(tab as "extract" | "batch" | "ai" | "tts" | "history")}
                 className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider transition-all ${
                   activeTab === tab
                     ? "bg-purple-50 dark:bg-white/5 text-purple-600 dark:text-purple-400 border-b-2 border-purple-500"
@@ -343,6 +391,11 @@ export default function Home() {
                 {tab === "tts" && (
                   <div className="flex items-center justify-center gap-2">
                     <Icons.Mic className="w-4 h-4" /> <span>TTS</span>
+                  </div>
+                )}
+                {tab === "history" && (
+                  <div className="flex items-center justify-center gap-2">
+                    <Icons.Clock className="w-4 h-4" /> <span>History</span>
                   </div>
                 )}
               </button>
@@ -400,6 +453,11 @@ export default function Home() {
             {/* MODE: TTS STUDIO */}
             {activeTab === "tts" && (
               <TTSStudio addToast={addToast} />
+            )}
+
+            {/* MODE: HISTORY */}
+            {activeTab === "history" && (
+              <JobHistory addToast={addToast} />
             )}
           </div>
         </section>

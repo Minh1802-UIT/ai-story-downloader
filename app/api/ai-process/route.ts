@@ -2,10 +2,34 @@ import { NextResponse } from "next/server";
 import { env } from "@src/config/env";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import process from "node:process";
+import { supabase } from "@src/config/supabase";
 
 export async function POST(request: Request) {
   try {
     const { prompt, content } = await request.json();
+
+    // 1. Xác thực và kiểm tra Credit
+    const authHeader = request.headers.get("Authorization");
+    if (!authHeader) {
+      return NextResponse.json({ error: "Unauthorized. Please login." }, { status: 401 } as any);
+    }
+    
+    const token = authHeader.replace("Bearer ", "").trim();
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    
+    if (authError || !user) {
+      return NextResponse.json({ error: "Invalid session. Please login again." }, { status: 401 } as any);
+    }
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("credits")
+      .eq("id", user.id)
+      .single();
+
+    if (!profile || profile.credits < 1) {
+      return NextResponse.json({ error: "Bạn đã hết Credit! Vui lòng nạp thêm để tiếp tục sử dụng AI." }, { status: 402 } as any);
+    }
 
     if (!prompt || !content) {
       return NextResponse.json(
@@ -111,6 +135,11 @@ export async function POST(request: Request) {
             // deno-lint-ignore no-explicit-any
             { status: 500 } as any // eslint-disable-line @typescript-eslint/no-explicit-any
         );
+    }
+
+    if (aiResponse) {
+       // Trừ 1 credit
+       await supabase.from("profiles").update({ credits: profile.credits - 1 }).eq("id", user.id);
     }
 
     return NextResponse.json({ 

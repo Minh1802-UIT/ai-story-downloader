@@ -1,7 +1,7 @@
 import React from "react";
 
 // Task type definition
-import { Task } from "@/app/types/index.ts";
+import { Task } from "@/app/types";
 
 interface TaskListProps {
   tasks: Task[];
@@ -113,7 +113,7 @@ export default function TaskList({
   const hasSuccessTasks = tasks.some(t => t.status === "success");
   
   return (
-    <section className="lg:col-span-7 bg-gray-50 dark:bg-[#050505] relative flex flex-col h-full overflow-hidden transition-colors duration-300">
+    <section className="lg:col-span-7 bg-gray-50 dark:bg-[#050505] relative flex flex-col min-h-[600px] lg:h-full lg:overflow-hidden transition-colors duration-300">
       {/* Header */}
       <div className="p-4 border-b border-gray-200 dark:border-white/10 flex justify-between items-center bg-white dark:bg-[#0a0a0a]">
         <h2 className="text-xs font-bold text-gray-600 dark:text-gray-500 uppercase tracking-widest">

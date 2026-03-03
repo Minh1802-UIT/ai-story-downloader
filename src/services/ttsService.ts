@@ -3,6 +3,7 @@
  */
 
 const TTS_API_ENDPOINT = "/api/tts";
+import { supabase } from "@src/config/supabase";
 
 interface TTSOptions {
   lang?: string;
@@ -100,9 +101,15 @@ export const mergeAudioBlobs = async (blobs: Blob[]): Promise<Blob> => {
  * Generate audio for a single text chunk via API
  */
 export const generateAudioChunk = async (text: string, lang = "vi", speed = 1.0, provider = "google", voice = "vi-VN-NamMinhNeural"): Promise<string> => {
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token || "";
+
   const response = await fetch(TTS_API_ENDPOINT, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { 
+      "Content-Type": "application/json",
+      ...(token ? { "Authorization": `Bearer ${token}` } : {})
+    },
     body: JSON.stringify({ text, lang, speed, provider, voice }),
   });
 

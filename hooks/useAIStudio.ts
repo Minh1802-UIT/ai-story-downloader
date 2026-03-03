@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { Task } from "@/app/types";
+import { supabase } from "@src/config/supabase";
 
 interface UseAIStudioProps {
   addTask: (task: Task) => void;
@@ -63,6 +64,9 @@ export function useAIStudio({ addTask, addTasks, updateTask, addToast }: UseAISt
     setAiLoading(true);
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token || "";
+
       if (mergeOutput || (!hasFiles && hasManualInput)) {
         // MERGE MODE: Combine all files + manual input
         const taskId = sizeId();
@@ -90,7 +94,10 @@ export function useAIStudio({ addTask, addTasks, updateTask, addToast }: UseAISt
 
         const res = await fetch("/api/ai-process", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json",
+            ...(token ? { "Authorization": `Bearer ${token}` } : {})
+          },
           body: JSON.stringify({ prompt: aiPrompt, content: contentToProcess }),
         });
         const data = await res.json();
@@ -146,7 +153,10 @@ export function useAIStudio({ addTask, addTasks, updateTask, addToast }: UseAISt
           try {
             const res = await fetch("/api/ai-process", {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
+              headers: { 
+                "Content-Type": "application/json",
+                ...(token ? { "Authorization": `Bearer ${token}` } : {})
+              },
               body: JSON.stringify({
                 prompt: aiPrompt,
                 content: task.fileContent,

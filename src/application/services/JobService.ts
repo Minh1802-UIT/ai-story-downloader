@@ -22,10 +22,11 @@ export interface JobResult {
 }
 
 // ---- Tạo Job mới ----
-export async function createJob(payload: JobPayload): Promise<string> {
+export async function createJob(payload: JobPayload, userId: string | null = null): Promise<string> {
   const { data, error } = await supabase
     .from("jobs")
     .insert({
+      user_id: userId,
       type: "BATCH_DOWNLOAD" as JobType,
       status: "QUEUED" as JobStatus,
       progress: 0,

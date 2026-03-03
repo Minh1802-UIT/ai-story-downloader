@@ -66,10 +66,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    let profileSubscription: any = null;
+
     // Lấy session hiện tại khi app mount
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
-      if (session?.user) fetchOrCreateProfile(session.user);
+      if (session?.user) {
+        fetchOrCreateProfile(session.user);
+        
+        // Setup realtime subscription
+        profileSubscription = supabase
+          .channel(`public:profiles:id=eq.${session.user.id}`)
+          .on(
+            "postgres_changes",
+            {
+              event: "UPDATE",
+              schema: "public",
+              table: "profiles",
+              filter: `id=eq.${session.user.id}`,
+            },
+            (payload) => {
+              setProfile(payload.new as ProfileData);
+            }
+          )
+          .subscribe();
+      }
       setLoading(false);
     });
 
@@ -77,8 +98,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setSession(session);
+        
+        // Cleanup old subscription
+        if (profileSubscription) {
+          supabase.removeChannel(profileSubscription);
+          profileSubscription = null;
+        }
+
         if (session?.user) {
           fetchOrCreateProfile(session.user);
+          
+          // Setup realtime subscription
+          profileSubscription = supabase
+            .channel(`public:profiles:id=eq.${session.user.id}`)
+            .on(
+              "postgres_changes",
+              {
+                event: "UPDATE",
+                schema: "public",
+                table: "profiles",
+                filter: `id=eq.${session.user.id}`,
+              },
+              (payload) => {
+                setProfile(payload.new as ProfileData);
+              }
+            )
+            .subscribe();
         } else {
           setProfile(null);
         }
@@ -86,7 +131,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      if (profileSubscription) supabase.removeChannel(profileSubscription);
+    };
   }, [fetchOrCreateProfile]);
 
   const signInWithGoogle = async () => {

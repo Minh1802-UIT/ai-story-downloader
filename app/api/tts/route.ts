@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { MsEdgeTTS, OUTPUT_FORMAT } from "msedge-tts";
 import { Buffer } from "node:buffer";
+import { supabase } from "@src/config/supabase";
 
 /**
  * TTS API Route - Supports Google Translate & Edge TTS
@@ -91,6 +92,28 @@ async function generateEdgeAudio(text: string, voice: string, speed: number): Pr
 
 export async function POST(request: Request) {
   try {
+    const authHeader = request.headers.get("Authorization");
+    if (!authHeader) {
+      return NextResponse.json({ error: "Unauthorized. Please login." }, { status: 401 } as any);
+    }
+    
+    const token = authHeader.replace("Bearer ", "").trim();
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    
+    if (authError || !user) {
+      return NextResponse.json({ error: "Invalid session. Please login again." }, { status: 401 } as any);
+    }
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("credits")
+      .eq("id", user.id)
+      .single();
+
+    if (!profile || profile.credits < 1) {
+      return NextResponse.json({ error: "Bạn đã hết Credit! Vui lòng nạp thêm để tiếp tục sử dụng TTS." }, { status: 402 } as any);
+    }
+
     const { text, lang = "vi", speed = 1.0, provider = "google", voice = "vi-VN-NamMinhNeural" } = await request.json();
 
     if (!text || typeof text !== "string") {
@@ -119,6 +142,11 @@ export async function POST(request: Request) {
     } else {
         // Default to Google
         audioBase64 = await generateGoogleAudio(text, lang, speed);
+    }
+
+    if (audioBase64) {
+      // Trừ 1 credit cho 1 lần tạo TTS
+      await supabase.from("profiles").update({ credits: profile.credits - 1 }).eq("id", user.id);
     }
 
     return NextResponse.json({

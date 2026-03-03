@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createJob, JobPayload } from "@src/application/services/JobService";
+import { supabase } from "@src/config/supabase";
 
 /**
  * POST /api/jobs
@@ -8,6 +9,18 @@ import { createJob, JobPayload } from "@src/application/services/JobService";
  */
 export async function POST(request: Request) {
   try {
+    // 1. Xác thực user từ token nếu có
+    const authHeader = request.headers.get("Authorization");
+    let userId: string | null = null;
+    
+    if (authHeader) {
+      const token = authHeader.replace("Bearer ", "").trim();
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      if (user && !authError) {
+        userId = user.id;
+      }
+    }
+
     const body = await request.json();
     const { storyUrl, startChapter, endChapter, chapterUrls } = body;
 
@@ -33,7 +46,7 @@ export async function POST(request: Request) {
       chapterUrls,
     };
 
-    const jobId = await createJob(payload);
+    const jobId = await createJob(payload, userId);
 
     return NextResponse.json({ success: true, jobId });
   } catch (error) {
