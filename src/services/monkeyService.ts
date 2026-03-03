@@ -56,7 +56,17 @@ export const monkeyService = () => {
 
       // --- Trích xuất nội dung ---
       let fullContent = "";
-      const contentContainer = $(".ql-editor.inner, .ql-editor, .content-container, #content, .reading-content, .chapter-c, #chapter-c, .chapter-content");
+      // Ưu tiên các container chứa nội dung thực sự, tránh các container mô tả truyện
+      let contentContainer = $(".ql-editor.inner");
+      if (contentContainer.length === 0) contentContainer = $(".ql-editor");
+      if (contentContainer.length === 0) contentContainer = $("#chapter-content-render");
+      if (contentContainer.length === 0) contentContainer = $("#chapter-content");
+      if (contentContainer.length === 0) contentContainer = $(".content-container");
+      if (contentContainer.length === 0) contentContainer = $(".reading-content");
+      if (contentContainer.length === 0) contentContainer = $(".chapter-c");
+      if (contentContainer.length === 0) contentContainer = $("#chapter-c");
+      if (contentContainer.length === 0) contentContainer = $("#content"); // Rất dễ nhầm
+      if (contentContainer.length === 0) contentContainer = $(".chapter-content"); // Dễ nhầm với description
       
       if (contentContainer.length) {
          contentContainer.find("script, style, .ads, div[class*='ads'], .chapter-nav, .nav-chapter").remove();

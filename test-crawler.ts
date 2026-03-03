@@ -1,7 +1,7 @@
 import * as cheerio from "cheerio";
 
 async function testFetch() {
-    const url = "https://monkeydtruyen.com/ba-co-cuc-pham-khong-di-tranh-nan-vao-rung-sau-san-manh-thu/chapter-1.html";
+    const url = "https://monkeydtruyen.com/ba-co-cuc-pham-khong-di-tranh-nan-vao-rung-sau-san-manh-thu/chuong-1.html";
     const htmlResponse = await fetch(url, {
         headers: {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
@@ -25,10 +25,7 @@ async function testFetch() {
         parentMap.set(key, parentMap.get(key) + 1);
     });
 
-    console.log("\nP tags grouped by parent:");
-    for (const [key, count] of parentMap.entries()) {
-        console.log(`- ${key}: ${count} <p> tags`);
-    }
+    // Không in chi tiết nữa để tránh bị PowerShell cắt mất log
 
     // In thử text của thẻ cha chứa nhiều P nhất (VD: Class "chapter-c" ở một site khác)
     let bestParent = null;

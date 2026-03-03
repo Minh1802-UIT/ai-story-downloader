@@ -1,7 +1,7 @@
 import { monkeyService } from "./src/services/monkeyService";
 
 async function testEngine() {
-    const url = "https://monkeydtruyen.com/ba-co-cuc-pham-khong-di-tranh-nan-vao-rung-sau-san-manh-thu/chapter-1.html";
+    const url = "https://monkeydtruyen.com/ba-co-cuc-pham-khong-di-tranh-nan-vao-rung-sau-san-manh-thu/chuong-1.html";
     const svc = monkeyService();
     console.log("---- Testing Core Crawler ----");
     const result = await svc.getMonkeyUrl(url);
