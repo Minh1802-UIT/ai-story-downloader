@@ -23,7 +23,7 @@ export async function GET(request: Request) {
 
     const { data: jobs, error } = await supabase
       .from("jobs")
-      .select("id, type, status, progress, result_data, created_at, updated_at")
+      .select("id, type, status, progress, result_data, created_at")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .limit(30);
