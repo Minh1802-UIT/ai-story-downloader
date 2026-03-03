@@ -44,3 +44,7 @@ next-env.d.ts
 Chapter*.txt
 
 .vercel
+
+# MCP Config
+.vscode/mcp.json
+mcp_config.json
