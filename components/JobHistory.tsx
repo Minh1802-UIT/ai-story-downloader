@@ -29,6 +29,16 @@ const Icons = {
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
     </svg>
+  ),
+  Play: (props: any) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z" />
+    </svg>
+  ),
+  SpeakerWave: (props: any) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z" />
+    </svg>
   )
 };
 
@@ -50,6 +60,8 @@ export default function JobHistory({ addToast }: { addToast: (msg: string, type:
   const [previewContent, setPreviewContent] = useState<{ title: string; text: string } | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [isAudioLoading, setIsAudioLoading] = useState(false);
 
   const fetchJobs = async () => {
     if (!session?.access_token) return;
@@ -80,16 +92,16 @@ export default function JobHistory({ addToast }: { addToast: (msg: string, type:
     }
   }, [session]);
 
-  const handleDownload = async (job: JobData) => {
+  const handleDownload = async (job: JobData, format: "txt" | "epub" = "txt") => {
     if (job.status !== "COMPLETED") {
       addToast("Job chưa hoàn thành.", "error");
       return;
     }
     
-    // API endpoint sẽ là /api/jobs/download
     try {
-      addToast("Đang chuẩn bị file tải xuống...", "info");
-      const res = await fetch(`/api/jobs/download?jobId=${job.id}`, {
+      addToast(`Đang chuẩn bị file ${format.toUpperCase()}...`, "info");
+      const urlPath = format === "epub" ? `/api/jobs/export/epub?jobId=${job.id}` : `/api/jobs/download?jobId=${job.id}`;
+      const res = await fetch(urlPath, {
         headers: {
           Authorization: `Bearer ${session?.access_token}`,
         },
@@ -105,15 +117,16 @@ export default function JobHistory({ addToast }: { addToast: (msg: string, type:
       }
 
       const blob = await res.blob();
-      const filename = res.headers.get("Content-Disposition")?.split('filename="')[1]?.replace('"', '') || `Story_Download_${job.id.slice(0, 5)}.txt`;
+      const defaultExt = format === "epub" ? "epub" : "txt";
+      const filename = res.headers.get("Content-Disposition")?.split('filename="')[1]?.replace('"', '') || `Story_Download_${job.id.slice(0, 5)}.${defaultExt}`;
       
-      const url = window.URL.createObjectURL(blob);
+      const urlObject = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = url;
+      a.href = urlObject;
       a.download = filename;
       document.body.appendChild(a);
       a.click();
-      window.URL.revokeObjectURL(url);
+      window.URL.revokeObjectURL(urlObject);
       a.remove();
       
       addToast("Tải xuống thành công!", "success");
@@ -128,6 +141,9 @@ export default function JobHistory({ addToast }: { addToast: (msg: string, type:
        addToast("Job chưa hoàn thành. Không thể xem thử", "error");
        return;
     }
+
+    setAudioUrl(null);
+    setIsAudioLoading(false);
     
     try {
       setIsPreviewLoading(true);
@@ -152,6 +168,52 @@ export default function JobHistory({ addToast }: { addToast: (msg: string, type:
        setIsPreviewOpen(false);
     } finally {
        setIsPreviewLoading(false);
+    }
+  };
+
+  const handlePlayAudio = async () => {
+    if (!previewContent || !previewContent.text) return;
+    try {
+      setIsAudioLoading(true);
+      const textToRead = previewContent.text.slice(0, 3000); 
+
+      const res = await fetch("/api/tts", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.access_token}`,
+        },
+        body: JSON.stringify({
+          text: textToRead,
+          provider: "edge",
+          voice: "vi-VN-HoaiMyNeural"
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+         if (res.status === 402) {
+             throw new Error("Bạn đã hết Credit! Vui lòng nạp thêm để nghe Audio.");
+         }
+         throw new Error(data.error || "Không thể tải Audio.");
+      }
+
+      const byteCharacters = atob(data.data.audio);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: "audio/mp3" });
+      const url = window.URL.createObjectURL(blob);
+      
+      setAudioUrl(url);
+      addToast(`Đã tạo Audio (${Math.round(byteArray.length/1024)} KB) - Bạn bị trừ 1 Credit`, "success");
+    } catch (error: any) {
+      console.error(error);
+      addToast(error.message, "error");
+    } finally {
+      setIsAudioLoading(false);
     }
   };
 
@@ -206,18 +268,24 @@ export default function JobHistory({ addToast }: { addToast: (msg: string, type:
                   </span>
                   
                   {job.status === "COMPLETED" && (
-                    <div className="flex items-center gap-2 mt-3">
+                    <div className="flex flex-wrap items-center justify-end gap-2 mt-3">
                        <button
-                        onClick={() => handlePreview(job)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-500/20 rounded-lg transition-colors border border-blue-200 dark:border-blue-500/20"
+                         onClick={() => handlePreview(job)}
+                         className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-500/20 rounded-lg transition-colors border border-blue-200 dark:border-blue-500/20"
                        >
                          <Icons.Eye className="w-3.5 h-3.5" /> Xem Thử
                        </button>
                        <button
-                         onClick={() => handleDownload(job)}
+                         onClick={() => handleDownload(job, "epub")}
+                         className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 hover:bg-orange-100 dark:hover:bg-orange-500/20 rounded-lg transition-colors border border-orange-200 dark:border-orange-500/20"
+                       >
+                         <Icons.Download className="w-3.5 h-3.5" /> Tải EPUB
+                       </button>
+                       <button
+                         onClick={() => handleDownload(job, "txt")}
                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-500/20 rounded-lg transition-colors border border-purple-200 dark:border-purple-500/20"
                        >
-                         <Icons.Download className="w-3.5 h-3.5" /> Tải Lại
+                         <Icons.Download className="w-3.5 h-3.5" /> Tải TXT
                        </button>
                     </div>
                   )}
@@ -235,11 +303,28 @@ export default function JobHistory({ addToast }: { addToast: (msg: string, type:
               
               {/* Modal Header */}
               <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-white/10 bg-gray-50/50 dark:bg-black/20">
-                 <h3 className="font-bold text-lg text-gray-800 dark:text-gray-100 truncate pr-4">
-                    {isPreviewLoading ? "Đang tải dữ liệu..." : (previewContent?.title || "Đọc Thử Truyện")}
-                 </h3>
+                 <div className="flex items-center gap-3 overflow-hidden">
+                   <h3 className="font-bold text-lg text-gray-800 dark:text-gray-100 truncate pr-4">
+                      {isPreviewLoading ? "Đang tải dữ liệu..." : (previewContent?.title || "Đọc Thử Truyện")}
+                   </h3>
+                   {previewContent && !isPreviewLoading && (
+                     <button
+                       onClick={handlePlayAudio}
+                       disabled={isAudioLoading || !!audioUrl}
+                       className="flex items-center whitespace-nowrap gap-1.5 px-3 py-1.5 text-xs font-bold bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-500/20 rounded-lg transition-colors border border-green-200 dark:border-green-500/20 disabled:opacity-50"
+                     >
+                       {isAudioLoading ? (
+                         <><Icons.RefreshCw className="w-3.5 h-3.5 animate-spin" /> Tạo Audio...</>
+                       ) : audioUrl ? (
+                         <><Icons.Play className="w-3.5 h-3.5" /> Đã tạo</>
+                       ) : (
+                         <><Icons.SpeakerWave className="w-3.5 h-3.5" /> Nghe Audio (1 Credit)</>
+                       )}
+                     </button>
+                   )}
+                 </div>
                  <button 
-                   onClick={() => setIsPreviewOpen(false)}
+                   onClick={() => { setIsPreviewOpen(false); setAudioUrl(null); setIsAudioLoading(false); }}
                    className="p-2 text-gray-400 hover:text-gray-700 dark:hover:text-white bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 rounded-full transition-colors"
                  >
                    <Icons.XMark className="w-5 h-5" />
@@ -263,6 +348,15 @@ export default function JobHistory({ addToast }: { addToast: (msg: string, type:
                     <div className="text-center text-red-500 p-8">Không có dữ liệu văn bản.</div>
                  )}
               </div>
+
+              {/* Modal Footer - Audio Player */}
+              {audioUrl && (
+                <div className="p-4 border-t border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-[#1a1a1a]">
+                  <audio controls autoPlay className="w-full" src={audioUrl}>
+                    Trình duyệt của bạn không hỗ trợ thẻ audio.
+                  </audio>
+                </div>
+              )}
 
            </div>
         </div>
