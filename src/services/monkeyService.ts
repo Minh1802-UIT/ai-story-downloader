@@ -68,7 +68,7 @@ export const monkeyService = () => {
 
       // --- Trích xuất nội dung ---
       let fullContent = "";
-      const contentContainer = $(".content-container, #content, .reading-content, .chapter-c, #chapter-c");
+      const contentContainer = $(".ql-editor.inner, .ql-editor, .content-container, #content, .reading-content, .chapter-c, #chapter-c, #chapter-content");
       
       if (contentContainer.length) {
          contentContainer.find("script, style, .ads, div[class*='ads'], .chapter-nav, .nav-chapter").remove();
