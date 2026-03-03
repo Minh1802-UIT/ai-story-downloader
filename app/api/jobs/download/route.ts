@@ -42,7 +42,8 @@ export async function GET(request: Request) {
       try {
         const pathname = new URL(url).pathname;
         const parts = pathname.split("/").filter(Boolean);
-        return parts[parts.length - 2] || parts[parts.length - 1] || url;
+        const slug = parts[parts.length - 2] || parts[parts.length - 1] || url;
+        return slug.replace(/\.html$/, "");
       } catch {
         return encodeURIComponent(url).slice(0, 100);
       }

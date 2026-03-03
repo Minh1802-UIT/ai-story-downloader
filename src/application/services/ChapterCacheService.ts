@@ -8,7 +8,8 @@ const urlToSlug = (url: string): string => {
     const pathname = new URL(url).pathname;
     // Lấy phần cuối cuả path, bỏ đuôi .html
     const parts = pathname.split("/").filter(Boolean);
-    return parts[parts.length - 2] || parts[parts.length - 1] || url;
+    const slug = parts[parts.length - 2] || parts[parts.length - 1] || url;
+    return slug.replace(/\.html$/, "");
   } catch {
     return encodeURIComponent(url).slice(0, 100);
   }

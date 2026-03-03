@@ -80,7 +80,12 @@ export default function JobHistory({ addToast }: { addToast: (msg: string, type:
       });
 
       if (!res.ok) {
-        throw new Error("Không thể tải file, có lỗi server.");
+        let errMsg = "Không thể tải file, có lỗi server.";
+        try {
+           const errData = await res.json();
+           if (errData.error) errMsg = errData.error;
+        } catch(e) {}
+        throw new Error(errMsg);
       }
 
       const blob = await res.blob();

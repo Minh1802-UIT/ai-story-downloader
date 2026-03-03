@@ -1,0 +1,26 @@
+[dotenv@17.3.1] injecting env (1) from .env.local -- tip: ⚙️  enable debug logging with { debug: true }
+[dotenv@17.3.1] injecting env (5) from .env -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
+Latest Job ID: 40c2b933-1b47-42e6-b46d-8fa26f31c504
+Job Result Data: {
+  storyUrl: 'https://monkeydtruyen.com/ba-co-cuc-pham-khong-di-tranh-nan-vao-rung-sau-san-manh-thu.html',
+  endChapter: 5,
+  chapterUrls: [
+    'https://monkeydtruyen.com/ba-co-cuc-pham-khong-di-tranh-nan-vao-rung-sau-san-manh-thu/chapter-1.html',
+    'https://monkeydtruyen.com/ba-co-cuc-pham-khong-di-tranh-nan-vao-rung-sau-san-manh-thu/chapter-2.html',
+    'https://monkeydtruyen.com/ba-co-cuc-pham-khong-di-tranh-nan-vao-rung-sau-san-manh-thu/chapter-3.html',
+    'https://monkeydtruyen.com/ba-co-cuc-pham-khong-di-tranh-nan-vao-rung-sau-san-manh-thu/chapter-4.html',
+    'https://monkeydtruyen.com/ba-co-cuc-pham-khong-di-tranh-nan-vao-rung-sau-san-manh-thu/chapter-5.html'
+  ],
+  startChapter: 1,
+  downloadedUrls: [
+    'https://monkeydtruyen.com/ba-co-cuc-pham-khong-di-tranh-nan-vao-rung-sau-san-manh-thu/chapter-1.html',
+    'https://monkeydtruyen.com/ba-co-cuc-pham-khong-di-tranh-nan-vao-rung-sau-san-manh-thu/chapter-2.html',
+    'https://monkeydtruyen.com/ba-co-cuc-pham-khong-di-tranh-nan-vao-rung-sau-san-manh-thu/chapter-3.html',
+    'https://monkeydtruyen.com/ba-co-cuc-pham-khong-di-tranh-nan-vao-rung-sau-san-manh-thu/chapter-4.html',
+    'https://monkeydtruyen.com/ba-co-cuc-pham-khong-di-tranh-nan-vao-rung-sau-san-manh-thu/chapter-5.html'
+  ],
+  processedCount: 5
+}
+Extracted Story Slug: ba-co-cuc-pham-khong-di-tranh-nan-vao-rung-sau-san-manh-thu.html
+Extracted Chapter Nums: [ 1, 2, 3, 4, 5 ]
+ERROR 404: Story data not found in Database for slug: ba-co-cuc-pham-khong-di-tranh-nan-vao-rung-sau-san-manh-thu.html
