@@ -4,6 +4,7 @@ import { IStoryProvider } from "@src/domain/interfaces";
 import { MonkeyProvider } from "@src/infrastructure/providers/MonkeyProvider";
 import { TruyenFullProvider } from "@src/infrastructure/providers/TruyenFullProvider";
 import { MetruyenchuProvider } from "@src/infrastructure/providers/MetruyenchuProvider";
+import { TangthuvienProvider } from "@src/infrastructure/providers/TangthuvienProvider";
 import { GenericProvider } from "@src/infrastructure/providers/GenericProvider";
 import { Chapter, StoryContent } from "@src/domain/entities";
 import { chapterCache } from "@src/application/services/ChapterCacheService";
@@ -16,6 +17,7 @@ export class StoryService {
             new MonkeyProvider(),
             new TruyenFullProvider(),
             new MetruyenchuProvider(),
+            new TangthuvienProvider(),
             new GenericProvider() 
         ];
     }

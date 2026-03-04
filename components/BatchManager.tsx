@@ -75,8 +75,8 @@ export default function BatchManager({
   React.useEffect(() => {
     if (!batchStoryUrl) { setWarning(null); return; }
     if (!batchStoryUrl.startsWith("http")) { setWarning("URL must start with http:// or https://"); return; }
-    if (!batchStoryUrl.includes("monkeydtruyen") && !batchStoryUrl.includes("truyenfull") && !batchStoryUrl.includes("metruyen")) { 
-        setWarning("⚠️ Hiện tại chỉ hỗ trợ monkeydtruyen, truyenfull, và metruyenchu"); 
+    if (!batchStoryUrl.includes("monkeydtruyen") && !batchStoryUrl.includes("truyenfull") && !batchStoryUrl.includes("metruyen") && !batchStoryUrl.includes("tangthuvien")) { 
+        setWarning("⚠️ Hiện tại hỗ trợ monkeydtruyen, truyenfull, metruyenchu, và tangthuvien"); 
         return; 
     }
     try {
@@ -108,7 +108,7 @@ export default function BatchManager({
             type="text"
             value={batchStoryUrl}
             onChange={(e) => setBatchStoryUrl(e.target.value)}
-            placeholder="https://monkeydtruyen.com/..."
+            placeholder="Example: https://monkeydtruyen.com/  hoặc metruyenchu.com, truyenfull.vn, tangthuvien.vn"
             className="w-full bg-gray-50 dark:bg-[#111] border border-gray-300 dark:border-white/10 rounded-lg p-3 pl-10 text-base text-gray-900 dark:text-white focus:outline-none focus:border-cyan-500 dark:focus:border-cyan-500/50 transition-colors"
           />
           <div className="absolute left-3 top-3 text-gray-400 dark:text-gray-600">
