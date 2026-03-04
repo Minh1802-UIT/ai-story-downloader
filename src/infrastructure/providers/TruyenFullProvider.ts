@@ -6,7 +6,7 @@ export class TruyenFullProvider implements IStoryProvider {
     private service = truyenfullService();
 
     canHandle(url: string): boolean {
-        return url.includes("truyenfull.vn") || url.includes("truyenfull.com");
+        return url.includes("truyenfull");
     }
 
     async getChapterList(url: string, start?: number, end?: number): Promise<{ success: boolean; chapters?: Chapter[]; error?: string }> {

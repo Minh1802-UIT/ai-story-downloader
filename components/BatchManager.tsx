@@ -108,7 +108,7 @@ export default function BatchManager({
             type="text"
             value={batchStoryUrl}
             onChange={(e) => setBatchStoryUrl(e.target.value)}
-            placeholder="Example: https://monkeydtruyen.com/  hoặc metruyenchu.com, truyenfull.vn, tangthuvien.vn"
+            placeholder="Example: https://monkeydtruyen.com/  hoặc truyenfull.vn, truyenfull.vision, tangthuvien.vn"
             className="w-full bg-gray-50 dark:bg-[#111] border border-gray-300 dark:border-white/10 rounded-lg p-3 pl-10 text-base text-gray-900 dark:text-white focus:outline-none focus:border-cyan-500 dark:focus:border-cyan-500/50 transition-colors"
           />
           <div className="absolute left-3 top-3 text-gray-400 dark:text-gray-600">
