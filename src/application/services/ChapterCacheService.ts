@@ -3,22 +3,48 @@ import { createServiceClient } from "@src/config/supabase";
 type CacheEntry = { raw_content: string; ai_rewritten_content: string | null };
 
 // Tạo slug từ URL để làm key lưu story
+// MonkeyDTruyen: /story-slug/1.html  → lấy phần dir 'story-slug'
+// TruyenFull:    /story-slug/chuong-1 → lấy phần dir 'story-slug'
 const urlToSlug = (url: string): string => {
   try {
     const pathname = new URL(url).pathname;
-    // Lấy phần cuối cuả path, bỏ đuôi .html
     const parts = pathname.split("/").filter(Boolean);
-    const slug = parts[parts.length - 2] || parts[parts.length - 1] || url;
-    return slug.replace(/\.html$/, "");
+
+    if (parts.length >= 2) {
+      // Kiểm tra nếu phần cuối là số chương (vd: 1.html, chuong-1)
+      const lastPart = parts[parts.length - 1];
+      const isChapterPart =
+        /^\d+(\.html)?$/.test(lastPart) ||
+        /(?:chuong|chapter|page)[/-](\d+)/i.test(lastPart);
+      if (isChapterPart) {
+        return parts[parts.length - 2].replace(/\.html$/, "");
+      }
+    }
+
+    // Fallback: lấy phần cuối
+    return parts[parts.length - 1].replace(/\.html$/, "") || encodeURIComponent(url).slice(0, 100);
   } catch {
     return encodeURIComponent(url).slice(0, 100);
   }
 };
 
-// Trích xuất số chương từ URL (pattern: /chuong-10, /chapter-10, /page-10)
+// Trích xuất số chương từ URL
+// Pattern 1: /chuong-10, /chapter-10, /page-10  (TruyenFull)
+// Pattern 2: /123.html hoặc /123              (MonkeyDTruyen)
 const extractChapterNumber = (url: string): number | null => {
-  const match = url.match(/(?:chuong|chapter|page)[/-](\d+)/i);
-  return match ? parseInt(match[1]) : null;
+  // Thử pattern chuẩn trước
+  const stdMatch = url.match(/(?:chuong|chapter|page)[/-](\d+)/i);
+  if (stdMatch) return parseInt(stdMatch[1]);
+
+  // Fallback: lấy số từ cuối path (vd: /123.html hoặc /123)
+  try {
+    const pathname = new URL(url).pathname;
+    const lastSegment = pathname.split("/").filter(Boolean).pop() || "";
+    const numMatch = lastSegment.match(/^(\d+)(\.html)?$/);
+    if (numMatch) return parseInt(numMatch[1]);
+  } catch { /* ignore */ }
+
+  return null;
 };
 
 export const chapterCache = {
