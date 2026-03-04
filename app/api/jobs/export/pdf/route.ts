@@ -111,8 +111,8 @@ export async function GET(request: Request) {
                if (fontRes.ok && fontBoldRes.ok) {
                   const fontBuffer = await fontRes.arrayBuffer();
                   const fontBoldBuffer = await fontBoldRes.arrayBuffer();
-                  doc.registerFont('Roboto', fontBuffer);
-                  doc.registerFont('Roboto-Bold', fontBoldBuffer);
+                  doc.registerFont('Roboto', Buffer.from(fontBuffer));
+                  doc.registerFont('Roboto-Bold', Buffer.from(fontBoldBuffer));
                   doc.font('Roboto');
                }
            } catch (e) {

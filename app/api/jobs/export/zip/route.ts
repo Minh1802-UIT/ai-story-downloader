@@ -82,55 +82,59 @@ export async function GET(request: Request) {
 
     // 1. Thêm file style.css
     const cssContent = `
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; max-width: 800px; margin: 0 auto; padding: 20px; color: #333; background: #fdfdfd; }
-        h1, h2 { text-align: center; color: #222; margin-bottom: 24px; padding-bottom: 10px; border-bottom: 1px solid #eaeaea; }
-        p { text-indent: 1.5em; margin-bottom: 1em; text-align: justify; font-size: 1.1em; }
-        .nav { display: flex; justify-content: space-between; margin-top: 40px; padding-top: 20px; border-top: 1px solid #eaeaea; }
-        .nav a { color: #0066cc; text-decoration: none; font-weight: bold; padding: 8px 16px; background: #f0f7ff; border-radius: 4px; }
-        .nav a:hover { background: #e0f0ff; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.8; max-width: 900px; margin: 0 auto; padding: 20px; color: #333; background: #fdfdfd; }
+        .story-header { text-align: center; margin-bottom: 40px; }
+        h1 { color: #222; margin-bottom: 24px; padding-bottom: 10px; border-bottom: 2px solid #eaeaea; font-size: 2.2em; }
+        h2 { color: #444; margin-top: 40px; margin-bottom: 20px; padding-bottom: 8px; border-bottom: 1px solid #eee; text-align: center; font-size: 1.8em; }
+        .toc { background: #f9f9f9; padding: 20px 30px; border-radius: 8px; margin-bottom: 40px; border: 1px solid #eaeaea; }
+        .toc ul { list-style-type: none; padding-left: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 10px; }
+        .toc a { color: #0066cc; text-decoration: none; padding: 5px; display: block; border-radius: 4px; transition: background 0.2s; }
+        .toc a:hover { background: #e0f0ff; }
+        p { text-indent: 1.5em; margin-bottom: 1.2em; text-align: justify; font-size: 1.15em; word-wrap: break-word; }
+        hr { border: 0; height: 1px; background-image: linear-gradient(to right, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0)); margin: 40px 0; }
         @media (prefers-color-scheme: dark) {
             body { background: #121212; color: #e0e0e0; }
-            h1, h2 { color: #fff; border-color: #333; }
-            .nav { border-color: #333; }
-            .nav a { background: #1a2b3c; color: #66b3ff; }
-            .nav a:hover { background: #2a3b4c; }
+            h1 { color: #fff; border-color: #333; }
+            h2 { color: #ddd; border-color: #222; }
+            .toc { background: #1e1e1e; border-color: #333; }
+            .toc a { color: #66b3ff; }
+            .toc a:hover { background: #2a3b4c; }
+            hr { background-image: linear-gradient(to right, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0)); }
         }
     `;
     zip.file("style.css", cssContent);
 
-    // 2. Thêm file index.html (Mục lục)
-    let indexHtml = `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${story.title || "Truyện"}</title><link rel="stylesheet" href="style.css"></head><body>`;
-    indexHtml += `<h1>${story.title || "Truyện Tải Xuống"}</h1>`;
-    indexHtml += `<ul>`;
+    // 2. Tạo nội dung HTML gộp
+    const minChHtml = Math.min(...chapterNums);
+    const maxChHtml = Math.max(...chapterNums);
 
-    chapters.forEach((chap, index) => {
+    let combinedHtml = `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${story.title || "Truyện"}</title><link rel="stylesheet" href="style.css"></head><body>`;
+    combinedHtml += `<div class="story-header"><h1>${story.title || "Truyện Tải Xuống"}</h1></div>`;
+    
+    // Mục lục
+    combinedHtml += `<div class="toc"><h2>Mục Lục</h2><ul>`;
+    chapters.forEach((chap) => {
         const title = chap.title || `Chương ${chap.chapter_number}`;
-        const fileName = `chuong-${chap.chapter_number}.html`;
-        
-        indexHtml += `<li><a href="${fileName}">${title}</a></li>`;
+        combinedHtml += `<li><a href="#chuong-${chap.chapter_number}">${title}</a></li>`;
+    });
+    combinedHtml += `</ul></div><hr/>`;
 
-        // Tạo nội dung từng chương
+    // Nội dung
+    chapters.forEach((chap) => {
+        const title = chap.title || `Chương ${chap.chapter_number}`;
         const text = chap.ai_rewritten_content || chap.raw_content || "";
-        const paragraphs = text.split("\n").filter((l: string) => l.trim().length > 0).map((l: string) => `<p>${l.trim()}</p>`).join("\n");
+        const paragraphs = text.split("\\n").filter((l: string) => l.trim().length > 0).map((l: string) => `<p>${l.trim()}</p>`).join("\\n");
         
-        const prevFile = index > 0 ? `chuong-${chapters[index - 1].chapter_number}.html` : 'index.html';
-        const nextFile = index < chapters.length - 1 ? `chuong-${chapters[index + 1].chapter_number}.html` : 'index.html';
-
-        const chapHtml = `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${title}</title><link rel="stylesheet" href="style.css"></head><body>
+        combinedHtml += `<div id="chuong-${chap.chapter_number}" class="chapter-container">
             <h2>${title}</h2>
             ${paragraphs}
-            <div class="nav">
-                <a href="${prevFile}">Quay lại</a>
-                <a href="index.html">Mục lục</a>
-                <a href="${nextFile}">Tiếp theo</a>
-            </div>
-        </body></html>`;
-
-        zip.file(fileName, chapHtml);
+        </div><hr/>`;
     });
 
-    indexHtml += `</ul></body></html>`;
-    zip.file("index.html", indexHtml);
+    combinedHtml += `</body></html>`;
+    
+    const htmlFileName = `Story_${storySlug}_Ch_${minChHtml}-${maxChHtml}.html`;
+    zip.file(htmlFileName, combinedHtml);
 
     const buffer = await zip.generateAsync({ type: "nodebuffer" });
 
