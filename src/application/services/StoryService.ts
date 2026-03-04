@@ -28,14 +28,14 @@ export class StoryService {
         return await provider.getChapterList(url, start, end);
     }
 
-    async getContent(url: string): Promise<StoryContent> {
+    async getContent(url: string, skipAi: boolean = false): Promise<StoryContent> {
         // ---- [CACHE LAYER] Check Supabase trước ----
         const cached = await chapterCache.get(url);
         if (cached) {
             // Cache HIT: Trả về kết quả đã lưu, không tốn 1 đồng API
             return {
                 title: "Cached Chapter",
-                content: cached.ai_rewritten_content || cached.raw_content,
+                content: skipAi ? cached.raw_content : (cached.ai_rewritten_content || cached.raw_content),
             };
         }
 
@@ -43,7 +43,10 @@ export class StoryService {
         const provider = this.getProvider(url);
         const rawData = await provider.getContent(url);
 
-        const rewritten = await this.rewriteContent(rawData.content);
+        let rewritten = null;
+        if (!skipAi) {
+            rewritten = await this.rewriteContent(rawData.content);
+        }
         const finalContent = rewritten || rawData.content;
 
         // ---- [CACHE LAYER] Lưu kết quả vào Supabase (Fire & Forget) ----

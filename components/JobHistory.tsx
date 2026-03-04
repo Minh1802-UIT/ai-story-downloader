@@ -98,7 +98,7 @@ export default function JobHistory({ addToast }: { addToast: (msg: string, type:
     }
   }, [session]);
 
-  const handleDownload = async (job: JobData, format: "txt" | "epub" = "txt") => {
+  const handleDownload = async (job: JobData, format: "txt" | "epub" | "pdf" | "docx" | "zip" = "txt") => {
     if (job.status !== "COMPLETED") {
       addToast("Job chưa hoàn thành.", "error");
       return;
@@ -106,7 +106,10 @@ export default function JobHistory({ addToast }: { addToast: (msg: string, type:
     
     try {
       addToast(`Đang chuẩn bị file ${format.toUpperCase()}...`, "info");
-      const urlPath = format === "epub" ? `/api/jobs/export/epub?jobId=${job.id}` : `/api/jobs/download?jobId=${job.id}`;
+      let urlPath = `/api/jobs/download?jobId=${job.id}`;
+      if (format !== "txt") {
+         urlPath = `/api/jobs/export/${format}?jobId=${job.id}`;
+      }
       const res = await fetch(urlPath, {
         headers: {
           Authorization: `Bearer ${session?.access_token}`,
@@ -123,7 +126,7 @@ export default function JobHistory({ addToast }: { addToast: (msg: string, type:
       }
 
       const blob = await res.blob();
-      const defaultExt = format === "epub" ? "epub" : "txt";
+      const defaultExt = format;
       const filename = res.headers.get("Content-Disposition")?.split('filename="')[1]?.replace('"', '') || `Story_Download_${job.id.slice(0, 5)}.${defaultExt}`;
       
       const urlObject = window.URL.createObjectURL(blob);
@@ -318,16 +321,34 @@ export default function JobHistory({ addToast }: { addToast: (msg: string, type:
                          <Icons.Eye className="w-3.5 h-3.5" /> Xem Thử
                        </button>
                        <button
+                         onClick={() => handleDownload(job, "pdf")}
+                         className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 rounded-lg transition-colors border border-red-200 dark:border-red-500/20"
+                       >
+                         <Icons.Download className="w-3.5 h-3.5" /> PDF
+                       </button>
+                       <button
+                         onClick={() => handleDownload(job, "docx")}
+                         className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 rounded-lg transition-colors border border-indigo-200 dark:border-indigo-500/20"
+                       >
+                         <Icons.Download className="w-3.5 h-3.5" /> DOCX
+                       </button>
+                       <button
+                         onClick={() => handleDownload(job, "zip")}
+                         className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 hover:bg-cyan-100 dark:hover:bg-cyan-500/20 rounded-lg transition-colors border border-cyan-200 dark:border-cyan-500/20"
+                       >
+                         <Icons.Download className="w-3.5 h-3.5" /> ZIP (HTML)
+                       </button>
+                       <button
                          onClick={() => handleDownload(job, "epub")}
                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 hover:bg-orange-100 dark:hover:bg-orange-500/20 rounded-lg transition-colors border border-orange-200 dark:border-orange-500/20"
                        >
-                         <Icons.Download className="w-3.5 h-3.5" /> Tải EPUB
+                         <Icons.Download className="w-3.5 h-3.5" /> EPUB
                        </button>
                        <button
                          onClick={() => handleDownload(job, "txt")}
                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-500/20 rounded-lg transition-colors border border-purple-200 dark:border-purple-500/20"
                        >
-                         <Icons.Download className="w-3.5 h-3.5" /> Tải TXT
+                         <Icons.Download className="w-3.5 h-3.5" /> TXT
                        </button>
                     </div>
                   )}

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabase, createAuthClient } from "@src/config/supabase";
-import epub from "epub-gen-memory";
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from "docx";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +16,6 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: false, error: "Missing jobId" }, { status: 400 });
     }
 
-    // 1. Lấy thông tin Job
     const { data: job, error: jobError } = await client
       .from("jobs")
       .select("user_id, result_data")
@@ -27,7 +26,6 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: false, error: "Job not found" }, { status: 404 });
     }
 
-    // Parse Token xác thực bảo mật
     if (token && job.user_id) {
        const { data: { user } } = await client.auth.getUser();
        if (!user || user.id !== job.user_id) {
@@ -40,7 +38,6 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: false, error: "No downloaded content in this job yet." }, { status: 404 });
     }
 
-    // Chuyển URL thành Slug như trong ChapterCacheService
     const urlToSlug = (url: string): string => {
       try {
         const pathname = new URL(url).pathname;
@@ -60,7 +57,6 @@ export async function GET(request: Request) {
     const storySlug = urlToSlug(storyUrl || downloadedUrls[0]);
     const chapterNums = downloadedUrls.map(extractChapterNumber).filter(Boolean) as number[];
 
-    // Tìm DB story cache
     const { data: story } = await client
       .from("stories")
       .select("id, title")
@@ -71,7 +67,6 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: false, error: "Story data not found in Database." }, { status: 404 });
     }
 
-    // Lấy tất cả Chapters
     const { data: chapters, error: chapError } = await client
       .from("chapters")
       .select("chapter_number, title, raw_content, ai_rewritten_content")
@@ -83,60 +78,78 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: false, error: "Chapters data empty in Database." }, { status: 404 });
     }
 
-    // CSS chuẩn cho EPUB Reader
-    const cssString = `
-      body { font-family: "Palatino Linotype", "Book Antiqua", Palatino, serif; line-height: 1.6; padding: 0 5%; color: #333; }
-      h2 { text-align: center; font-size: 1.5em; font-weight: bold; margin-bottom: 1.5em; margin-top: 1em; color: #222; border-bottom: 1px solid #ccc; padding-bottom: 10px; }
-      p { text-indent: 1.5em; margin-bottom: 0.8em; text-align: justify; font-size: 1.1em; }
-    `;
+    // Build Word Document
+    const docChildren: any[] = [];
+    
+    // Add Title Page
+    docChildren.push(
+        new Paragraph({
+            text: story.title || "Truyện Tải Xuống",
+            heading: HeadingLevel.TITLE,
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 400 }
+        })
+    );
+    docChildren.push(
+        new Paragraph({
+            text: `Nguồn: ${storyUrl}`,
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 800 }
+        })
+    );
 
-    // Format content for EPUB
-    const epubChapters = chapters.map((chap) => {
+    chapters.forEach((chap) => {
         const title = chap.title || `Chương ${chap.chapter_number}`;
         const text = chap.ai_rewritten_content || chap.raw_content || "";
         
-        // Wrap văn bản thuần túy trong thẻ HTML <p>
-        const htmlContent = text.split("\n")
-            .filter((line: string) => line.trim().length > 0)
-            .map((line: string) => `<p>${line.trim()}</p>`)
-            .join("\n");
+        docChildren.push(
+            new Paragraph({
+                text: title,
+                heading: HeadingLevel.HEADING_2,
+                alignment: AlignmentType.CENTER,
+                spacing: { before: 800, after: 400 },
+                pageBreakBefore: true
+            })
+        );
 
-        return {
-            title: title,
-            content: `<h2>${title}</h2>\n${htmlContent}` // epub-gen-memory render content
-        };
+        const lines = text.split("\n").filter((l: string) => l.trim().length > 0);
+        lines.forEach((line: string) => {
+            docChildren.push(
+                new Paragraph({
+                    children: [new TextRun({ text: line.trim(), size: 24 })], // size 24 = 12pt
+                    alignment: AlignmentType.JUSTIFIED,
+                    spacing: { after: 200, line: 360 }, // line 360 = 1.5 spacing
+                    indent: { firstLine: 720 } // 0.5 inch indent
+                })
+            );
+        });
     });
 
-    const epubOptions = {
-        title: story.title || "Truyện Tải Xuống từ AI Story Downloader",
-        author: "AI Story Downloader",
-        publisher: "VanMinh1802",
-        source: storyUrl || "",
-        tocTitle: "Mục Lục",
-        description: `Truyện được crawler tự động từ ${storyUrl}`,
-        css: cssString,
-        lang: "vi"
-    };
+    const doc = new Document({
+        sections: [{
+            properties: {},
+            children: docChildren
+        }]
+    });
 
-    // Tạo file nén EPUB thành Buffer Output ở thư mục TMP nội bộ
-    const epubBuffer = await epub(epubOptions, epubChapters);
+    const buffer = await Packer.toBuffer(doc);
 
     const minCh = Math.min(...chapterNums);
     const maxCh = Math.max(...chapterNums);
-    const fileName = `Story_${storySlug}_Ch_${minCh}-${maxCh}.epub`;
+    const fileName = `Story_${storySlug}_Ch_${minCh}-${maxCh}.docx`;
 
-    const uint8Array = new Uint8Array(epubBuffer);
+    const uint8Array = new Uint8Array(buffer);
 
     return new NextResponse(uint8Array, {
       status: 200,
       headers: {
-        "Content-Type": "application/epub+zip",
+        "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         "Content-Disposition": `attachment; filename="${fileName}"`
       }
     });
 
   } catch (error: any) {
-    console.error("EPUB Output Error:", error);
-    return NextResponse.json({ success: false, error: error.message || "Lỗi tạo EPUB" }, { status: 500 });
+    console.error("DOCX Output Error:", error);
+    return NextResponse.json({ success: false, error: error.message || "Lỗi tạo DOCX" }, { status: 500 });
   }
 }

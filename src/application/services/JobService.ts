@@ -1,9 +1,9 @@
 import { supabase, createAuthClient } from "@src/config/supabase";
 import { storyService } from "@src/application/services/StoryService";
 
-// Số chương xử lý mỗi "chunk" — đủ nhỏ để dưới 10s Vercel timeout
-const CHUNK_SIZE = 5;
-const CHUNK_DELAY_MS = 1200;
+// Số chương xử lý mỗi "chunk" — chạy song song
+const CHUNK_SIZE = 10;
+const CHUNK_DELAY_MS = 500;
 
 export type JobType = "BATCH_DOWNLOAD";
 export type JobStatus = "QUEUED" | "PROCESSING" | "COMPLETED" | "FAILED";
@@ -121,28 +121,30 @@ export async function processNextChunk(
       .eq("id", job.user_id);
   }
 
-  // 5. Xử lý tuần tự từng chương trong chunk
+  // 5. Xử lý SONG SONG tất cả chương trong chunk
   const newDownloadedUrls = [...downloadedUrls];
   let newProcessedCount = processedCount;
 
-  for (const chapterUrl of chunkUrls) {
-    try {
-      // Fetch content (sẽ dùng cache nếu có sẵn)
-      const result = await storyService.getContent(chapterUrl);
-      newDownloadedUrls.push(chapterUrl);
-      newProcessedCount++;
+  await Promise.all(
+    chunkUrls.map(async (chapterUrl) => {
+      try {
+        // Vô hiệu hoá AI cho luồng Batch Download (nhanh gấp nhiều lần)
+        const skipAi = job.type === "BATCH_DOWNLOAD";
+        const result = await storyService.getContent(chapterUrl, skipAi);
+        
+        newDownloadedUrls.push(chapterUrl);
+        console.log(`[Job ${jobId}] Processed: ${result.title}`);
+      } catch (err) {
+        console.error(`[Job ${jobId}] Failed chapter ${chapterUrl}:`, err);
+      }
+    })
+  );
 
-      // Nhỏ delay để tránh IP block
-      await new Promise((r) => setTimeout(r, CHUNK_DELAY_MS));
+  // Cộng dồn tiến độ sau khi Promise.all hoàn thành
+  newProcessedCount += chunkUrls.length;
 
-      console.log(
-        `[Job ${jobId}] Processed ${newProcessedCount}/${total}: ${result.title}`
-      );
-    } catch (err) {
-      console.error(`[Job ${jobId}] Failed chapter ${chapterUrl}:`, err);
-      newProcessedCount++; // Bỏ qua lỗi, tiếp tục
-    }
-  }
+  // Nghỉ giữa các đợt Chunk (thay vì giữa từng chương)
+  await new Promise((r) => setTimeout(r, CHUNK_DELAY_MS));
 
   // 6. Cập nhật tiến độ vào DB
   const newProgress = Math.round((newProcessedCount / total) * 100);
