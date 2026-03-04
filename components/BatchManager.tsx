@@ -39,7 +39,11 @@ function generateChapterUrls(baseUrl: string, start: number, end: number): strin
     }
     if (!replaced) {
       const base = baseUrl.replace(/\/$/, "").replace(/\.html$/, "");
-      urls.push(`${base}/chuong-${i}.html`);
+      if (baseUrl.includes("truyenfull")) {
+          urls.push(`${base}/chuong-${i}/`);
+      } else {
+          urls.push(`${base}/chuong-${i}.html`);
+      }
     } else {
       urls.push(parts.join("/"));
     }
@@ -71,7 +75,10 @@ export default function BatchManager({
   React.useEffect(() => {
     if (!batchStoryUrl) { setWarning(null); return; }
     if (!batchStoryUrl.startsWith("http")) { setWarning("URL must start with http:// or https://"); return; }
-    if (!batchStoryUrl.includes("monkeydtruyen")) { setWarning("⚠️ Currently we only support monkeydtruyen.com"); return; }
+    if (!batchStoryUrl.includes("monkeydtruyen") && !batchStoryUrl.includes("truyenfull")) { 
+        setWarning("⚠️ Hiện tại chỉ hỗ trợ monkeydtruyen.com và truyenfull.vn"); 
+        return; 
+    }
     try {
       const urlObj = new URL(batchStoryUrl);
       if (urlObj.pathname.length < 2 || !urlObj.pathname.includes("-")) {
@@ -108,7 +115,7 @@ export default function BatchManager({
             <LayersIcon className="w-5 h-5" />
           </div>
         </div>
-        <p className="text-xs text-gray-500 dark:text-gray-500 mt-1 ml-1">Example: https://monkeydtruyen.com/ten-truyen.html</p>
+        <p className="text-xs text-gray-500 dark:text-gray-500 mt-1 ml-1">Example: https://monkeydtruyen.com/... hoặc https://truyenfull.vn/...</p>
         {warning && (
           <div className="mt-2 text-xs text-amber-600 dark:text-amber-500 bg-amber-50 dark:bg-amber-900/20 px-3 py-2 rounded-lg border border-amber-200 dark:border-amber-500/30 flex items-center gap-2 animate-in fade-in">
             ⚠️ {warning}

@@ -1,16 +1,15 @@
 import { IStoryProvider } from "@src/domain/interfaces";
 import { Chapter, StoryContent } from "@src/domain/entities";
-import { monkeyService } from "@src/services/monkeyService";
+import { truyenfullService } from "@src/services/truyenfullService";
 
-export class MonkeyProvider implements IStoryProvider {
-    private service = monkeyService();
+export class TruyenFullProvider implements IStoryProvider {
+    private service = truyenfullService();
 
     canHandle(url: string): boolean {
-        return url.includes("monkeydtruyen.com");
+        return url.includes("truyenfull.vn") || url.includes("truyenfull.com");
     }
 
     async getChapterList(url: string, start?: number, end?: number): Promise<{ success: boolean; chapters?: Chapter[]; error?: string }> {
-        // monkeyService returns { number, title, url } which matches Chapter interface
         const result = await this.service.getChapterList(url, start, end);
         if (result.success && result.chapters) {
              return { success: true, chapters: result.chapters as Chapter[] };
@@ -19,7 +18,7 @@ export class MonkeyProvider implements IStoryProvider {
     }
 
     async getContent(url: string): Promise<StoryContent> {
-        const result = await this.service.getMonkeyUrl(url);
+        const result = await this.service.getStoryUrl(url);
         return {
             title: result.title,
             content: result.content

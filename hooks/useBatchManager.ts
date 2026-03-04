@@ -41,6 +41,9 @@ const generateSmartUrl = (originalUrl: string, newChapterNum: number): string =>
   if (foundIndex === -1) {
       // Fallback đơn giản: nối thêm /chuong-X
       const baseUrl = originalUrl.replace(/\/$/, "").replace(/\.html$/, "");
+      if (originalUrl.includes("truyenfull")) {
+          return `${baseUrl}/chuong-${newChapterNum}/`;        
+      }
       return `${baseUrl}/chuong-${newChapterNum}.html`;
   }
 

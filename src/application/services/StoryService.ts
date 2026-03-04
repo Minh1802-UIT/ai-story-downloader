@@ -3,6 +3,7 @@ import { genation } from "@src/repositories/genation";
 import { env } from "@src/config/env";
 import { IStoryProvider } from "@src/domain/interfaces";
 import { MonkeyProvider } from "@src/infrastructure/providers/MonkeyProvider";
+import { TruyenFullProvider } from "@src/infrastructure/providers/TruyenFullProvider";
 import { GenericProvider } from "@src/infrastructure/providers/GenericProvider";
 import { Chapter, StoryContent } from "@src/domain/entities";
 import { chapterCache } from "@src/application/services/ChapterCacheService";
@@ -13,7 +14,7 @@ export class StoryService {
     constructor() {
         this.providers = [
             new MonkeyProvider(),
-            // TruyenFullProvider removed
+            new TruyenFullProvider(),
             new GenericProvider() 
         ];
     }
