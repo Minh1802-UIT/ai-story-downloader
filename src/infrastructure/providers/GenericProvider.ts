@@ -7,10 +7,10 @@ export class GenericProvider implements IStoryProvider {
     }
 
     getChapterList(_url: string, _start?: number, _end?: number): Promise<{ success: boolean; chapters?: Chapter[]; error?: string }> {
-        return Promise.resolve({ success: false, error: "Generic provider not implemented for chapter list" });
+        return Promise.resolve({ success: false, error: "Trang web này chưa được hỗ trợ. Hiện chỉ hỗ trợ: monkeydtruyen.com, truyenfull (.vn/.com/.vision)" });
     }
 
     getContent(_url: string): Promise<StoryContent> {
-        return Promise.resolve({ title: "Error", content: "Generic provider not implemented for content" });
+        throw new Error("Trang web này chưa được hỗ trợ. Hiện chỉ hỗ trợ: monkeydtruyen.com, truyenfull (.vn/.com/.vision)");
     }
 }

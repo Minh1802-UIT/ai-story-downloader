@@ -124,6 +124,7 @@ export async function processNextChunk(
   // 5. Xử lý SONG SONG tất cả chương trong chunk
   const newDownloadedUrls = [...downloadedUrls];
   let newProcessedCount = processedCount;
+  let failedInChunk = 0;
 
   await Promise.all(
     chunkUrls.map(async (chapterUrl) => {
@@ -135,10 +136,25 @@ export async function processNextChunk(
         newDownloadedUrls.push(chapterUrl);
         console.log(`[Job ${jobId}] Processed: ${result.title}`);
       } catch (err) {
+        failedInChunk++;
         console.error(`[Job ${jobId}] Failed chapter ${chapterUrl}:`, err);
       }
     })
   );
+
+  // Nếu TẤT CẢ chapter trong chunk đều fail → đánh dấu FAILED và dừng
+  if (failedInChunk === chunkUrls.length) {
+    const errMsg = "Tất cả chapter đều thất bại. Kiểm tra lại URL hoặc nguồn truyện.";
+    await client
+      .from("jobs")
+      .update({ 
+        status: "FAILED", 
+        progress: Math.round((processedCount / total) * 100),
+        result_data: { ...payload, processedCount, downloadedUrls, error: errMsg }
+      })
+      .eq("id", jobId);
+    return { done: true, progress: Math.round((processedCount / total) * 100), total };
+  }
 
   // Cộng dồn tiến độ sau khi Promise.all hoàn thành
   newProcessedCount += chunkUrls.length;
