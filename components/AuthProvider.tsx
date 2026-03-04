@@ -8,6 +8,7 @@ import { supabase } from "@src/config/supabase";
 type ProfileData = {
   id: string;
   email: string;
+  role: string;
   credits: number;
 };
 
@@ -45,7 +46,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Thử lấy profile đã tồn tại
     const { data, error } = await supabase
       .from("profiles")
-      .select("id, email, credits")
+      .select("id, email, role, credits")
       .eq("id", user.id)
       .single();
 
@@ -58,8 +59,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (error?.code === "PGRST116") {
       const { data: newProfile } = await supabase
         .from("profiles")
-        .insert({ id: user.id, email: user.email ?? "", credits: 100 })
-        .select("id, email, credits")
+        .insert({ id: user.id, email: user.email ?? "", role: "user", credits: 100 })
+        .select("id, email, role, credits")
         .single();
       if (newProfile) setProfile(newProfile);
     }

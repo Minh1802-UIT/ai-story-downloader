@@ -34,6 +34,7 @@ export function createAuthClient(token: string) {
 export type ProfileRow = {
   id: string;
   email: string;
+  role: string | "admin" | "user";
   credits: number;
   created_at: string;
 };

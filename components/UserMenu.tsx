@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/components/AuthProvider";
+import Link from "next/link";
 
 export function UserMenu() {
   const { user, profile, loading, signInWithGoogle, signOut } = useAuth();
@@ -76,6 +77,16 @@ export function UserMenu() {
             </p>
             <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user.email}</p>
           </div>
+
+          {profile?.role === "admin" && (
+            <Link
+              href="/admin"
+              className="block w-full px-4 py-2.5 text-left text-sm text-fuchsia-600 dark:text-fuchsia-400
+                         hover:bg-fuchsia-50 dark:hover:bg-fuchsia-900/20 transition-colors border-b border-gray-100 dark:border-gray-800"
+            >
+              👑 Admin Panel
+            </Link>
+          )}
 
           <button
             onClick={signOut}
