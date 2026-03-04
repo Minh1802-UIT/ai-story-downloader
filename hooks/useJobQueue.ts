@@ -86,8 +86,8 @@ export function useJobQueue(): UseJobQueueReturn {
           break;
         }
 
-        // Nhỏ delay giữa các chunk để tránh rate limiting
-        await new Promise((r) => setTimeout(r, 500));
+        // Giảm delay poll để tiết kiệm thời gian chờ không cần thiết
+        await new Promise((r) => setTimeout(r, 200));
       } catch (err) {
         console.error("[useJobQueue] Network error:", err);
         setStatus("failed");

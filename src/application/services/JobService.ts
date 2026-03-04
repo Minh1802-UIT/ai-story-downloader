@@ -1,10 +1,11 @@
 import { supabase, createAuthClient } from "@src/config/supabase";
 import { storyService } from "@src/application/services/StoryService";
 
-// Số chương xử lý mỗi "chunk" — chạy song song (Đồng bộ với BatchConfig)
-const CHUNK_SIZE = 3;
-const CHUNK_DELAY_MS = 1500;
-const MAX_RETRIES = 3;
+// ---- Performance Config ----
+const CHUNK_SIZE = 5;          // Số chương chạy song song mỗi lần
+const BASE_DELAY_MS = 500;     // Delay tối thiểu giữa các chunk (khi thành công)
+const MAX_DELAY_MS = 2500;     // Delay tối đa (khi bị rate limit)
+const MAX_RETRIES = 3;         // Số lần thử lại tối đa mỗi chương
 
 export type JobType = "BATCH_DOWNLOAD";
 export type JobStatus = "QUEUED" | "PROCESSING" | "COMPLETED" | "FAILED";
@@ -122,10 +123,11 @@ export async function processNextChunk(
       .eq("id", job.user_id);
   }
 
-  // 5. Xử lý SONG SONG tất cả chương trong chunk với logic Retry (Chống DDOS/Rate Limit)
+  // 5. Xử lý SONG SONG tất cả chương trong chunk với Adaptive Delay
   const newDownloadedUrls = [...downloadedUrls];
   let newProcessedCount = processedCount;
   let failedInChunk = 0;
+  let rateLimitHit = false; // Flag bẻt Rate Limit để điều chỉnh delay
 
   await Promise.all(
     chunkUrls.map(async (chapterUrl) => {
@@ -144,15 +146,18 @@ export async function processNextChunk(
           }
           
           newDownloadedUrls.push(chapterUrl);
-          console.log(`[Job ${jobId}] Processed: ${result.title}`);
+          console.log(`[Job ${jobId}] ✓ ${result.title}`);
           success = true;
         } catch (err) {
-          console.error(`[Job ${jobId}] Lần ${attempt}/${MAX_RETRIES} Failed chapter ${chapterUrl}:`, err);
+          const errMsg = err instanceof Error ? err.message : String(err);
+          console.error(`[Job ${jobId}] Lần ${attempt}/${MAX_RETRIES} chương ${chapterUrl}:`, errMsg);
           if (attempt >= MAX_RETRIES) {
             failedInChunk++;
           } else {
-            // Giãn cách thử lại
-            await new Promise(r => setTimeout(r, 1000));
+            // Exponential backoff: 500ms, 1000ms, 2000ms
+            const backoff = Math.min(500 * Math.pow(2, attempt - 1), 2000);
+            rateLimitHit = true; // Thất bại => có khả năng bị rate limit
+            await new Promise(r => setTimeout(r, backoff));
           }
         }
       }
@@ -176,8 +181,7 @@ export async function processNextChunk(
   // Cộng dồn tiến độ sau khi Promise.all hoàn thành
   newProcessedCount += chunkUrls.length;
 
-  // Nghỉ giữa các đợt Chunk (thay vì giữa từng chương)
-  await new Promise((r) => setTimeout(r, CHUNK_DELAY_MS));
+  // (Adaptive delay đã được xử lý bên trong vòng lặp chunk phía trên)
 
   // 6. Cập nhật tiến độ vào DB
   const newProgress = Math.round((newProcessedCount / total) * 100);
