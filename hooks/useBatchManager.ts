@@ -41,7 +41,7 @@ const generateSmartUrl = (originalUrl: string, newChapterNum: number): string =>
   if (foundIndex === -1) {
       // Fallback đơn giản: nối thêm /chuong-X
       const baseUrl = originalUrl.replace(/\/$/, "").replace(/\.html$/, "");
-      return `${baseUrl}/chapter-${newChapterNum}.html`;
+      return `${baseUrl}/chuong-${newChapterNum}.html`;
   }
 
   // 2. Xử lý Zero Padding (Giữ nguyên định dạng 01, 001...)

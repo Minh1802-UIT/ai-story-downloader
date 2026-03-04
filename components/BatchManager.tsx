@@ -39,7 +39,7 @@ function generateChapterUrls(baseUrl: string, start: number, end: number): strin
     }
     if (!replaced) {
       const base = baseUrl.replace(/\/$/, "").replace(/\.html$/, "");
-      urls.push(`${base}/chapter-${i}.html`);
+      urls.push(`${base}/chuong-${i}.html`);
     } else {
       urls.push(parts.join("/"));
     }
