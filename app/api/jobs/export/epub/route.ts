@@ -113,7 +113,7 @@ export async function GET(request: Request) {
 
         return {
             title: title,
-            content: `<h2>${title}</h2>\n${htmlContent}` // epub-gen-memory render content
+            content: htmlContent
         };
     });
 
