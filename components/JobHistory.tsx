@@ -280,82 +280,92 @@ export default function JobHistory({ addToast }: { addToast: (msg: string, type:
         <div className="text-center py-8 text-gray-500">Chưa có hoạt động nào.</div>
       ) : (
         <div className="space-y-3">
-          {jobs.map((job) => (
-            <div key={job.id} className="bg-white dark:bg-[#111] border border-gray-200 dark:border-white/10 p-4 rounded-xl shadow-sm">
-              <div className="flex justify-between items-start mb-2">
-                <div>
-                  <div className="font-bold text-sm text-gray-800 dark:text-gray-200">
-                    {job.type === "BATCH_DOWNLOAD" ? "TẢI CHƯƠNG TRUYỆN MASS" : job.type}
-                  </div>
-                  <div className="text-xs text-gray-400 mt-1 space-y-1">
-                    <p>Mã: <span className="font-mono">{job.id.split("-")[0]}</span></p>
-                    <p>Ngày: {new Date(job.created_at).toLocaleString()}</p>
-                    {job.result_data?.storyUrl && <p className="truncate max-w-[200px] xl:max-w-md">Nguồn: {job.result_data.storyUrl}</p>}
-                  </div>
-                </div>
-                <div className="flex flex-col items-end">
+          {jobs.map((job) => {
+            const isFailed = job.status === "FAILED";
+            const isCompleted = job.status === "COMPLETED";
+            const isProcessing = job.status === "PROCESSING" || job.status === "QUEUED";
+            return (
+              <div key={job.id} className="bg-white dark:bg-[#111] border border-gray-200 dark:border-white/10 rounded-xl shadow-sm overflow-hidden">
+                {/* --- HEADER: Status + Delete --- */}
+                <div className={`flex items-center justify-between px-4 py-2 border-b border-gray-100 dark:border-white/5 ${
+                  isCompleted ? "bg-green-50/50 dark:bg-green-900/10" :
+                  isFailed    ? "bg-red-50/50 dark:bg-red-900/10" :
+                               "bg-amber-50/50 dark:bg-amber-900/10"
+                }`}>
                   <div className="flex items-center gap-2">
-                    <span className={`text-xs font-bold px-2 py-1 rounded-full ${
-                      job.status === "COMPLETED" ? "bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400" :
-                      job.status === "FAILED" ? "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400" :
-                      "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400"
+                    <span className={`inline-block w-2 h-2 rounded-full ${
+                      isCompleted ? "bg-green-500" : isFailed ? "bg-red-500" : "bg-amber-400 animate-pulse"
+                    }`} />
+                    <span className={`text-xs font-bold ${
+                      isCompleted ? "text-green-700 dark:text-green-400" :
+                      isFailed    ? "text-red-700 dark:text-red-400" :
+                                   "text-amber-700 dark:text-amber-400"
                     }`}>
-                      {job.status} ({job.progress}%)
+                      {isCompleted ? "HOÀN THÀNH" : isFailed ? "THẤT BẠI" : job.status === "QUEUED" ? "ĐANG XẾP HÀNG" : "ĐANG XỬ LÝ"} — {job.progress}%
                     </span>
-                    <button 
-                      onClick={() => handleDeleteJob(job.id)}
-                      disabled={deletingJobId === job.id}
-                      className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
-                      title="Xóa tác vụ"
-                    >
-                      {deletingJobId === job.id ? <Icons.RefreshCw className="w-4 h-4 animate-spin" /> : <Icons.Trash className="w-4 h-4" />}
-                    </button>
                   </div>
-                  
-                  {job.status === "COMPLETED" && (
-                    <div className="flex flex-wrap items-center justify-end gap-2 mt-3">
-                       <button
-                         onClick={() => handlePreview(job)}
-                         className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-500/20 rounded-lg transition-colors border border-blue-200 dark:border-blue-500/20"
-                       >
-                         <Icons.Eye className="w-3.5 h-3.5" /> Xem Thử
-                       </button>
-                       <button
-                         onClick={() => handleDownload(job, "pdf")}
-                         className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 rounded-lg transition-colors border border-red-200 dark:border-red-500/20"
-                       >
-                         <Icons.Download className="w-3.5 h-3.5" /> PDF
-                       </button>
-                       <button
-                         onClick={() => handleDownload(job, "docx")}
-                         className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 rounded-lg transition-colors border border-indigo-200 dark:border-indigo-500/20"
-                       >
-                         <Icons.Download className="w-3.5 h-3.5" /> DOCX
-                       </button>
-                       <button
-                         onClick={() => handleDownload(job, "zip")}
-                         className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 hover:bg-cyan-100 dark:hover:bg-cyan-500/20 rounded-lg transition-colors border border-cyan-200 dark:border-cyan-500/20"
-                       >
-                         <Icons.Download className="w-3.5 h-3.5" /> ZIP (HTML)
-                       </button>
-                       <button
-                         onClick={() => handleDownload(job, "epub")}
-                         className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 hover:bg-orange-100 dark:hover:bg-orange-500/20 rounded-lg transition-colors border border-orange-200 dark:border-orange-500/20"
-                       >
-                         <Icons.Download className="w-3.5 h-3.5" /> EPUB
-                       </button>
-                       <button
-                         onClick={() => handleDownload(job, "txt")}
-                         className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-500/20 rounded-lg transition-colors border border-purple-200 dark:border-purple-500/20"
-                       >
-                         <Icons.Download className="w-3.5 h-3.5" /> TXT
-                       </button>
+                  <button
+                    onClick={() => handleDeleteJob(job.id)}
+                    disabled={deletingJobId === job.id}
+                    className="p-1 text-gray-400 hover:text-red-500 transition-colors"
+                    title="Xóa tác vụ"
+                  >
+                    {deletingJobId === job.id ? <Icons.RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Icons.Trash className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+
+                {/* --- BODY: Info --- */}
+                <div className="px-4 pt-3 pb-2">
+                  <p className="font-bold text-sm text-gray-800 dark:text-gray-200 mb-1">
+                    {job.type === "BATCH_DOWNLOAD" ? "📦 Tải Chương Mass" : job.type}
+                  </p>
+                  <div className="grid grid-cols-2 gap-x-4 text-xs text-gray-400">
+                    <p>Mã: <span className="font-mono text-gray-500 dark:text-gray-400">{job.id.split("-")[0]}</span></p>
+                    <p>{new Date(job.created_at).toLocaleString("vi-VN", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}</p>
+                    {job.result_data?.storyUrl && (
+                      <p className="col-span-2 truncate text-gray-400 mt-0.5" title={job.result_data.storyUrl}>
+                        🔗 {job.result_data.storyUrl}
+                      </p>
+                    )}
+                    {isFailed && job.result_data?.error && (
+                      <p className="col-span-2 text-red-400 mt-0.5 line-clamp-2">⚠️ {job.result_data.error}</p>
+                    )}
+                  </div>
+
+                  {/* Progress bar for processing jobs */}
+                  {isProcessing && (
+                    <div className="mt-2 w-full bg-gray-100 dark:bg-white/10 rounded-full h-1.5 overflow-hidden">
+                      <div className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-500 animate-pulse" style={{ width: `${job.progress}%` }} />
                     </div>
                   )}
                 </div>
+
+                {/* --- FOOTER: Download Actions (chỉ hiện khi COMPLETED) --- */}
+                {isCompleted && (
+                  <div className="px-4 pb-3 flex flex-wrap items-center gap-1.5">
+                    <button onClick={() => handlePreview(job)} className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 rounded-lg transition-colors border border-blue-500/20">
+                      <Icons.Eye className="w-3 h-3" /> Đọc thử
+                    </button>
+                    <button onClick={() => handleDownload(job, "txt")} className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold bg-gray-500/10 text-gray-600 dark:text-gray-400 hover:bg-gray-500/20 rounded-lg transition-colors border border-gray-500/20">
+                      <Icons.Download className="w-3 h-3" /> TXT
+                    </button>
+                    <button onClick={() => handleDownload(job, "epub")} className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold bg-orange-500/10 text-orange-600 dark:text-orange-400 hover:bg-orange-500/20 rounded-lg transition-colors border border-orange-500/20">
+                      <Icons.Download className="w-3 h-3" /> EPUB
+                    </button>
+                    <button onClick={() => handleDownload(job, "pdf")} className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-500/20 rounded-lg transition-colors border border-red-500/20">
+                      <Icons.Download className="w-3 h-3" /> PDF
+                    </button>
+                    <button onClick={() => handleDownload(job, "docx")} className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/20 rounded-lg transition-colors border border-indigo-500/20">
+                      <Icons.Download className="w-3 h-3" /> DOCX
+                    </button>
+                    <button onClick={() => handleDownload(job, "zip")} className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 hover:bg-cyan-500/20 rounded-lg transition-colors border border-cyan-500/20">
+                      <Icons.Download className="w-3 h-3" /> ZIP
+                    </button>
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

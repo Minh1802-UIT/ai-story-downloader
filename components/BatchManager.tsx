@@ -79,6 +79,7 @@ export default function BatchManager({
 }: BatchManagerProps) {
   const [warning, setWarning] = React.useState<string | null>(null);
   const { status, progress, total, startJob, reset, jobId } = jobQueue;
+  const isSubmittingRef = React.useRef(false); // Guard chống double-click tạo 2 Job
 
   React.useEffect(() => {
     if (!batchStoryUrl) { setWarning(null); return; }
@@ -99,38 +100,47 @@ export default function BatchManager({
 
   const handleQueueJob = async () => {
     if (!batchStoryUrl || endChapter < startChapter) return;
+    // ====== GUARD CHỐNG DOUBLE CLICK ======
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
+    // ======================================
     
-    const isChapterUrl = /(?:chuong|chapter|page)[/-](\d+)/i.test(batchStoryUrl);
-    let chapterUrls: string[] = [];
-    let smartListSuccess = false;
+    try {
+      const isChapterUrl = /(?:chuong|chapter|page)[/-](\d+)/i.test(batchStoryUrl);
+      let chapterUrls: string[] = [];
+      let smartListSuccess = false;
 
-    if (!isChapterUrl) {
-        try {
-            const res = await fetch("/api/analyze", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ url: batchStoryUrl, type: "list", start: startChapter, end: endChapter })
-            });
-            const apiJson = await res.json();
-            
-            if (apiJson.success && apiJson.data && apiJson.data.length > 0) {
-                 // deno-lint-ignore no-explicit-any
-                chapterUrls = apiJson.data.map((c: any) => c.url);
-                
-                if (chapterUrls.length > 0) {
-                    smartListSuccess = true;
-                }
-            }
-        } catch (e) {
-            console.warn("Smart list fetching failed, switching to fallback generation", e);
-        }
+      if (!isChapterUrl) {
+          try {
+              const res = await fetch("/api/analyze", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ url: batchStoryUrl, type: "list", start: startChapter, end: endChapter })
+              });
+              const apiJson = await res.json();
+              
+              if (apiJson.success && apiJson.data && apiJson.data.length > 0) {
+                   // deno-lint-ignore no-explicit-any
+                  chapterUrls = apiJson.data.map((c: any) => c.url);
+                  
+                  if (chapterUrls.length > 0) {
+                      smartListSuccess = true;
+                  }
+              }
+          } catch (e) {
+              console.warn("Smart list fetching failed, switching to fallback generation", e);
+          }
+      }
+
+      if (!smartListSuccess || chapterUrls.length === 0) {
+          chapterUrls = generateChapterUrls(batchStoryUrl, startChapter, endChapter);
+      }
+
+      await startJob({ storyUrl: batchStoryUrl, startChapter, endChapter, chapterUrls });
+    } finally {
+      // Đặt lại lock sau khi gọi xong (dù thành công hay lỗi)
+      isSubmittingRef.current = false;
     }
-
-    if (!smartListSuccess || chapterUrls.length === 0) {
-        chapterUrls = generateChapterUrls(batchStoryUrl, startChapter, endChapter);
-    }
-
-    await startJob({ storyUrl: batchStoryUrl, startChapter, endChapter, chapterUrls });
   };
 
   const isQueueRunning = status === "creating" || status === "processing";
