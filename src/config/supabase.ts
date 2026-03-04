@@ -9,8 +9,19 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
-// Client dùng ở mọi nơi (Browser & Server Components)
+// Client dùng chung (Browser & Server Components với Anon Context)
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+// Hàm tạo Client nhúng Token Xác Thực (Dùng bên trong API Server Route)
+export function createAuthClient(token: string) {
+  return createClient(supabaseUrl, supabaseAnonKey, {
+    global: {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  });
+}
 
 // ----- Type Definitions (Sync với Database Schema) -----
 
@@ -50,14 +61,4 @@ export type JobRow = {
   created_at: string;
 };
 
-// Shorthand Database type for Supabase generics
-export type Database = {
-  public: {
-    Tables: {
-      profiles: { Row: ProfileRow };
-      stories: { Row: StoryRow };
-      chapters: { Row: ChapterRow };
-      jobs: { Row: JobRow };
-    };
-  };
-};
+

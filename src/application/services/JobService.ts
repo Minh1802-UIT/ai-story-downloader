@@ -1,4 +1,4 @@
-import { supabase } from "@src/config/supabase";
+import { supabase, createAuthClient } from "@src/config/supabase";
 import { storyService } from "@src/application/services/StoryService";
 
 // Số chương xử lý mỗi "chunk" — đủ nhỏ để dưới 10s Vercel timeout
@@ -22,8 +22,9 @@ export interface JobResult {
 }
 
 // ---- Tạo Job mới ----
-export async function createJob(payload: JobPayload, userId: string | null = null): Promise<string> {
-  const { data, error } = await supabase
+export async function createJob(payload: JobPayload, userId: string | null = null, token: string = ""): Promise<string> {
+  const client = token ? createAuthClient(token) : supabase;
+  const { data, error } = await client
     .from("jobs")
     .insert({
       user_id: userId,
@@ -48,10 +49,13 @@ export async function createJob(payload: JobPayload, userId: string | null = nul
 
 // ---- Xử lý 1 chunk (CHUNK_SIZE chương) ----
 export async function processNextChunk(
-  jobId: string
+  jobId: string,
+  token: string = ""
 ): Promise<{ done: boolean; progress: number; total: number }> {
+  const client = token ? createAuthClient(token) : supabase;
+  
   // 1. Lấy trạng thái job hiện tại
-  const { data: job, error } = await supabase
+  const { data: job, error } = await client
     .from("jobs")
     .select("*")
     .eq("id", jobId)
@@ -71,7 +75,7 @@ export async function processNextChunk(
 
   // Đã xử lý hết → đánh dấu COMPLETED
   if (processedCount >= total) {
-    await supabase
+    await client
       .from("jobs")
       .update({ status: "COMPLETED", progress: 100 })
       .eq("id", jobId);
@@ -79,7 +83,7 @@ export async function processNextChunk(
   }
 
   // 3. Cập nhật trạng thái → PROCESSING
-  await supabase
+  await client
     .from("jobs")
     .update({ status: "PROCESSING" })
     .eq("id", jobId);
@@ -100,7 +104,7 @@ export async function processNextChunk(
 
     if (!profile || profile.credits < chunkUrls.length) {
       // Hết Credit -> Fail Job
-      await supabase
+      await client
         .from("jobs")
         .update({ 
           status: "FAILED", 
@@ -111,7 +115,7 @@ export async function processNextChunk(
     }
 
     // Trừ credit tương ứng với số chương trong chunk xử lý đợt này
-    await supabase
+    await client
       .from("profiles")
       .update({ credits: profile.credits - chunkUrls.length })
       .eq("id", job.user_id);
@@ -144,7 +148,7 @@ export async function processNextChunk(
   const newProgress = Math.round((newProcessedCount / total) * 100);
   const isDone = newProcessedCount >= total;
 
-  await supabase
+  await client
     .from("jobs")
     .update({
       status: isDone ? "COMPLETED" : "PROCESSING",
@@ -161,8 +165,9 @@ export async function processNextChunk(
 }
 
 // ---- Đọc trạng thái Job ----
-export async function getJobStatus(jobId: string) {
-  const { data, error } = await supabase
+export async function getJobStatus(jobId: string, token: string = "") {
+  const client = token ? createAuthClient(token) : supabase;
+  const { data, error } = await client
     .from("jobs")
     .select("id, status, progress, result_data, created_at")
     .eq("id", jobId)

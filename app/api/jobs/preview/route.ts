@@ -1,18 +1,21 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@src/config/supabase";
+import { supabase, createAuthClient } from "@src/config/supabase";
 
 export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const jobId = searchParams.get("jobId");
+    const tokenParams = searchParams.get("token");
+    const token = tokenParams || request.headers.get("Authorization")?.replace("Bearer ", "").trim() || "";
+    const client = token ? createAuthClient(token) : supabase;
 
     if (!jobId) {
       return NextResponse.json({ success: false, error: "Missing jobId" }, { status: 400 });
     }
 
-    // 1. Lấy thông tin Job
-    const { data: job, error: jobError } = await supabase
+    // 1. Lấy thông Job
+    const { data: job, error: jobError } = await client
       .from("jobs")
       .select("user_id, result_data")
       .eq("id", jobId)
@@ -23,10 +26,8 @@ export async function GET(request: Request) {
     }
 
     // Parse Token lấy user ID bảo mật
-    const authHeader = request.headers.get("Authorization");
-    if (authHeader && job.user_id) {
-       const token = authHeader.replace("Bearer ", "").trim();
-       const { data: { user } } = await supabase.auth.getUser(token);
+    if (token && job.user_id) {
+       const { data: { user } } = await client.auth.getUser();
        if (!user || user.id !== job.user_id) {
           return NextResponse.json({ success: false, error: "Unauthorized access to this job" }, { status: 401 });
        }
@@ -62,7 +63,7 @@ export async function GET(request: Request) {
     const chapterNums = chapterNumsRaw.filter(c => c >= minCh && c < minCh + 5);
 
     // 3. Tìm DB story cache
-    const { data: story } = await supabase
+    const { data: story } = await client
       .from("stories")
       .select("id, title")
       .eq("slug", storySlug)
@@ -73,7 +74,7 @@ export async function GET(request: Request) {
     }
 
     // 4. Lấy tối đa 5 Chapters đầu tiên
-    const { data: chapters, error: chapError } = await supabase
+    const { data: chapters, error: chapError } = await client
       .from("chapters")
       .select("chapter_number, title, raw_content, ai_rewritten_content")
       .eq("story_id", story.id)

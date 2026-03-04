@@ -11,6 +11,8 @@ import { processNextChunk } from "@src/application/services/JobService";
  */
 export async function POST(request: Request) {
   try {
+    const authHeader = request.headers.get("Authorization");
+    const token = authHeader ? authHeader.replace("Bearer ", "").trim() : "";
     const { jobId } = await request.json();
 
     if (!jobId || typeof jobId !== "string") {
@@ -20,7 +22,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const result = await processNextChunk(jobId);
+    const result = await processNextChunk(jobId, token);
 
     return NextResponse.json({ success: true, ...result });
   } catch (error) {

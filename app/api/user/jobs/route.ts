@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@src/config/supabase";
+import { supabase, createAuthClient } from "@src/config/supabase";
 
 export async function GET(request: Request) {
   try {
@@ -12,7 +12,8 @@ export async function GET(request: Request) {
     }
 
     const token = authHeader.replace("Bearer ", "").trim();
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const client = createAuthClient(token);
+    const { data: { user }, error: authError } = await client.auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json(
@@ -21,7 +22,7 @@ export async function GET(request: Request) {
       );
     }
 
-    const { data: jobs, error } = await supabase
+    const { data: jobs, error } = await client
       .from("jobs")
       .select("id, type, status, progress, result_data, created_at")
       .eq("user_id", user.id)

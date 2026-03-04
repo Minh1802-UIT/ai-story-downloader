@@ -12,9 +12,11 @@ export async function POST(request: Request) {
     // 1. Xác thực user từ token nếu có
     const authHeader = request.headers.get("Authorization");
     let userId: string | null = null;
+    let tokenStr: string = "";
     
     if (authHeader) {
       const token = authHeader.replace("Bearer ", "").trim();
+      tokenStr = token;
       const { data: { user }, error: authError } = await supabase.auth.getUser(token);
       if (user && !authError) {
         userId = user.id;
@@ -46,7 +48,7 @@ export async function POST(request: Request) {
       chapterUrls,
     };
 
-    const jobId = await createJob(payload, userId);
+    const jobId = await createJob(payload, userId, tokenStr);
 
     return NextResponse.json({ success: true, jobId });
   } catch (error) {
