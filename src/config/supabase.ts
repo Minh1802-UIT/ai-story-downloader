@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!; // Fallback if missing, but should be set in .env
 
 if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error(
@@ -11,6 +12,11 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 // Client dùng chung (Browser & Server Components với Anon Context)
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+// Client có quyền cao nhất (Chỉ dùng Backend/Admin, Bypass RLS)
+export function createServiceClient() {
+  return createClient(supabaseUrl, supabaseServiceKey);
+}
 
 // Hàm tạo Client nhúng Token Xác Thực (Dùng bên trong API Server Route)
 export function createAuthClient(token: string) {

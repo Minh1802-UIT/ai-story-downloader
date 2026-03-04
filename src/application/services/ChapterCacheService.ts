@@ -1,4 +1,4 @@
-import { supabase } from "@src/config/supabase";
+import { createServiceClient } from "@src/config/supabase";
 
 type CacheEntry = { raw_content: string; ai_rewritten_content: string | null };
 
@@ -33,8 +33,10 @@ export const chapterCache = {
       // Lấy story slug từ URL
       const storySlug = urlToSlug(chapterUrl);
 
+      const serviceClient = createServiceClient();
+      
       // 1. Tìm story trong DB
-      const { data: story } = await supabase
+      const { data: story } = await serviceClient
         .from("stories")
         .select("id")
         .eq("slug", storySlug)
@@ -43,7 +45,7 @@ export const chapterCache = {
       if (!story) return null;
 
       // 2. Tìm chapter trong DB
-      const { data: chapter, error } = await supabase
+      const { data: chapter, error } = await serviceClient
         .from("chapters")
         .select("raw_content, ai_rewritten_content")
         .eq("story_id", story.id)
@@ -78,8 +80,10 @@ export const chapterCache = {
 
       const storySlug = urlToSlug(chapterUrl);
 
+      const serviceClient = createServiceClient();
+      
       // 1. Upsert story (tạo nếu chưa có, không làm gì nếu đã có)
-      const { data: story, error: storyErr } = await supabase
+      const { data: story, error: storyErr } = await serviceClient
         .from("stories")
         .upsert(
           { slug: storySlug, source_url: chapterUrl, title },
@@ -94,7 +98,7 @@ export const chapterCache = {
       }
 
       // 2. Upsert chapter
-      const { error: chapErr } = await supabase.from("chapters").upsert(
+      const { error: chapErr } = await serviceClient.from("chapters").upsert(
         {
           story_id: story.id,
           chapter_number: chapterNum,
