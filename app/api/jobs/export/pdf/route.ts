@@ -134,9 +134,18 @@ export async function GET(request: Request) {
                doc.moveDown(1.5);
                doc.font('Roboto').fontSize(12);
                
-               const paragraphs = text.split("\n").filter((l: string) => l.trim().length > 0);
+               const paragraphs = text.split("\n").map((l: string) => l.trim()).filter((l: string) => l.length > 0);
+               
+               if (paragraphs.length > 0) {
+                   const firstLineLower = paragraphs[0].toLowerCase();
+                   const titleLower = title.toLowerCase();
+                   if (firstLineLower === titleLower || firstLineLower.includes(titleLower) || titleLower.includes(firstLineLower) || /^(chương|chapter)\s*\d+/i.test(firstLineLower)) {
+                       paragraphs.shift();
+                   }
+               }
+
                paragraphs.forEach((p: string) => {
-                   doc.text(p.trim(), { align: 'justify', indent: 20 });
+                   doc.text(p, { align: 'justify', indent: 20 });
                    doc.moveDown(0.5);
                });
            });

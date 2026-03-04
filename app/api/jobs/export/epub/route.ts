@@ -93,13 +93,23 @@ export async function GET(request: Request) {
     // Format content for EPUB
     const epubChapters = chapters.map((chap) => {
         const title = chap.title || `Chương ${chap.chapter_number}`;
-        const text = chap.ai_rewritten_content || chap.raw_content || "";
+        let text = chap.ai_rewritten_content || chap.raw_content || "";
         
-        // Wrap văn bản thuần túy trong thẻ HTML <p>
-        const htmlContent = text.split("\n")
-            .filter((line: string) => line.trim().length > 0)
-            .map((line: string) => `<p>${line.trim()}</p>`)
-            .join("\n");
+        // Split text into lines, trim, and filter out empty lines
+        const lines = text.split("\n").map((line: string) => line.trim()).filter((line: string) => line.length > 0);
+        
+        // Check if the first line is a duplicate of the title and remove it
+        if (lines.length > 0) {
+            const firstLineLower = lines[0].toLowerCase();
+            const titleLower = title.toLowerCase();
+            // Check for exact match, partial match, or common chapter patterns
+            if (firstLineLower === titleLower || firstLineLower.includes(titleLower) || titleLower.includes(firstLineLower) || /^(chương|chapter)\s*\d+/i.test(firstLineLower)) {
+                lines.shift(); // Remove the first line if it's a duplicate title
+            }
+        }
+
+        // Wrap remaining lines in <p> tags
+        const htmlContent = lines.map((line: string) => `<p>${line}</p>`).join("\n");
 
         return {
             title: title,

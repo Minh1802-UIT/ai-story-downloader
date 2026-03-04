@@ -112,11 +112,20 @@ export async function GET(request: Request) {
             })
         );
 
-        const lines = text.split("\n").filter((l: string) => l.trim().length > 0);
+        const lines = text.split("\n").map((l: string) => l.trim()).filter((l: string) => l.length > 0);
+        
+        if (lines.length > 0) {
+            const firstLineLower = lines[0].toLowerCase();
+            const titleLower = title.toLowerCase();
+            if (firstLineLower === titleLower || firstLineLower.includes(titleLower) || titleLower.includes(firstLineLower) || /^(chương|chapter)\s*\d+/i.test(firstLineLower)) {
+                lines.shift();
+            }
+        }
+
         lines.forEach((line: string) => {
             docChildren.push(
                 new Paragraph({
-                    children: [new TextRun({ text: line.trim(), size: 24 })], // size 24 = 12pt
+                    children: [new TextRun({ text: line, size: 24 })], // size 24 = 12pt
                     alignment: AlignmentType.JUSTIFIED,
                     spacing: { after: 200, line: 360 }, // line 360 = 1.5 spacing
                     indent: { firstLine: 720 } // 0.5 inch indent

@@ -123,7 +123,17 @@ export async function GET(request: Request) {
     chapters.forEach((chap) => {
         const title = chap.title || `Chương ${chap.chapter_number}`;
         const text = chap.ai_rewritten_content || chap.raw_content || "";
-        const paragraphs = text.split("\\n").filter((l: string) => l.trim().length > 0).map((l: string) => `<p>${l.trim()}</p>`).join("\\n");
+        const lines = text.split("\\n").map((l: string) => l.trim()).filter((l: string) => l.length > 0);
+        
+        if (lines.length > 0) {
+            const firstLineLower = lines[0].toLowerCase();
+            const titleLower = title.toLowerCase();
+            if (firstLineLower === titleLower || firstLineLower.includes(titleLower) || titleLower.includes(firstLineLower) || /^(chương|chapter)\\s*\\d+/i.test(firstLineLower)) {
+                lines.shift();
+            }
+        }
+
+        const paragraphs = lines.map((l: string) => `<p>${l}</p>`).join("\\n");
         
         combinedHtml += `<div id="chuong-${chap.chapter_number}" class="chapter-container">
             <h2>${title}</h2>
