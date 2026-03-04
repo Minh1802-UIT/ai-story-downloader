@@ -96,7 +96,7 @@ export async function processNextChunk(
 
   // --- HỆ THỐNG CREDIT: Kiểm tra và Trừ Credit ---
   if (job.user_id && chunkUrls.length > 0) {
-    const { data: profile } = await supabase
+    const { data: profile } = await client
       .from("profiles")
       .select("credits")
       .eq("id", job.user_id)
