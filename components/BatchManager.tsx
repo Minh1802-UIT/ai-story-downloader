@@ -99,7 +99,37 @@ export default function BatchManager({
 
   const handleQueueJob = async () => {
     if (!batchStoryUrl || endChapter < startChapter) return;
-    const chapterUrls = generateChapterUrls(batchStoryUrl, startChapter, endChapter);
+    
+    const isChapterUrl = /(?:chuong|chapter|page)[/-](\d+)/i.test(batchStoryUrl);
+    let chapterUrls: string[] = [];
+    let smartListSuccess = false;
+
+    if (!isChapterUrl) {
+        try {
+            const res = await fetch("/api/analyze", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ url: batchStoryUrl, type: "list", start: startChapter, end: endChapter })
+            });
+            const apiJson = await res.json();
+            
+            if (apiJson.success && apiJson.data && apiJson.data.length > 0) {
+                 // deno-lint-ignore no-explicit-any
+                chapterUrls = apiJson.data.map((c: any) => c.url);
+                
+                if (chapterUrls.length > 0) {
+                    smartListSuccess = true;
+                }
+            }
+        } catch (e) {
+            console.warn("Smart list fetching failed, switching to fallback generation", e);
+        }
+    }
+
+    if (!smartListSuccess || chapterUrls.length === 0) {
+        chapterUrls = generateChapterUrls(batchStoryUrl, startChapter, endChapter);
+    }
+
     await startJob({ storyUrl: batchStoryUrl, startChapter, endChapter, chapterUrls });
   };
 
