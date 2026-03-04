@@ -40,3 +40,49 @@ export async function GET(request: Request) {
     return NextResponse.json({ success: false, error: msg }, { status: 500 });
   }
 }
+
+export async function DELETE(request: Request) {
+  try {
+    const authHeader = request.headers.get("Authorization");
+    if (!authHeader) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    const token = authHeader.replace("Bearer ", "").trim();
+    const client = createAuthClient(token);
+    const { data: { user }, error: authError } = await client.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { success: false, error: "Invalid token" },
+        { status: 401 }
+      );
+    }
+
+    const { searchParams } = new URL(request.url);
+    const jobId = searchParams.get("jobId");
+
+    if (!jobId) {
+      return NextResponse.json({ success: false, error: "Missing jobId" }, { status: 400 });
+    }
+
+    const { error } = await client
+      .from("jobs")
+      .delete()
+      .eq("id", jobId)
+      .eq("user_id", user.id);
+
+    if (error) {
+      throw error;
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : "Unknown error";
+    console.error("[DELETE /api/user/jobs]", msg);
+    return NextResponse.json({ success: false, error: msg }, { status: 500 });
+  }
+}

@@ -39,6 +39,11 @@ const Icons = {
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z" />
     </svg>
+  ),
+  Trash: (props: any) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+    </svg>
   )
 };
 
@@ -62,6 +67,7 @@ export default function JobHistory({ addToast }: { addToast: (msg: string, type:
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [isAudioLoading, setIsAudioLoading] = useState(false);
+  const [deletingJobId, setDeletingJobId] = useState<string | null>(null);
 
   const fetchJobs = async () => {
     if (!session?.access_token) return;
@@ -133,6 +139,32 @@ export default function JobHistory({ addToast }: { addToast: (msg: string, type:
     } catch (err: any) {
       console.error(err);
       addToast("Tải xuống thất bại: " + err.message, "error");
+    }
+  };
+
+  const handleDeleteJob = async (jobId: string) => {
+    if (!confirm("Bạn có chắc chắn muốn xóa tác vụ này khỏi lịch sử không?")) return;
+    
+    setDeletingJobId(jobId);
+    try {
+      const res = await fetch(`/api/user/jobs?jobId=${jobId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${session?.access_token}`,
+        },
+      });
+      const data = await res.json();
+      if (data.success) {
+        setJobs(jobs.filter(j => j.id !== jobId));
+        addToast("Đã xóa tác vụ thành công", "success");
+      } else {
+        throw new Error(data.error || "Lỗi xóa tác vụ");
+      }
+    } catch (e: any) {
+      console.error(e);
+      addToast(e.message, "error");
+    } finally {
+      setDeletingJobId(null);
     }
   };
 
@@ -259,13 +291,23 @@ export default function JobHistory({ addToast }: { addToast: (msg: string, type:
                   </div>
                 </div>
                 <div className="flex flex-col items-end">
-                  <span className={`text-xs font-bold px-2 py-1 rounded-full ${
-                    job.status === "COMPLETED" ? "bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400" :
-                    job.status === "FAILED" ? "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400" :
-                    "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400"
-                  }`}>
-                    {job.status} ({job.progress}%)
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-xs font-bold px-2 py-1 rounded-full ${
+                      job.status === "COMPLETED" ? "bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400" :
+                      job.status === "FAILED" ? "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400" :
+                      "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400"
+                    }`}>
+                      {job.status} ({job.progress}%)
+                    </span>
+                    <button 
+                      onClick={() => handleDeleteJob(job.id)}
+                      disabled={deletingJobId === job.id}
+                      className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
+                      title="Xóa tác vụ"
+                    >
+                      {deletingJobId === job.id ? <Icons.RefreshCw className="w-4 h-4 animate-spin" /> : <Icons.Trash className="w-4 h-4" />}
+                    </button>
+                  </div>
                   
                   {job.status === "COMPLETED" && (
                     <div className="flex flex-wrap items-center justify-end gap-2 mt-3">
