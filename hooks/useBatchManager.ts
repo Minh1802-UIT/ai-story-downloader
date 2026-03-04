@@ -16,8 +16,18 @@ interface UseBatchManagerProps {
 
 // [HELPER] Hàm tạo URL thông minh (Quét ngược từ cuối lên)
 // Giải quyết vấn đề: Tên truyện có chữ "chapter" hoặc số 0 ở đầu (01, 02...)
-const generateSmartUrl = (originalUrl: string, newChapterNum: number): string => {
-  const parts = originalUrl.split("/");
+// Giữ nguyên các params nếu có (ít phổ biến trong link chapter, nhưng an toàn hơn)
+const generateSmartUrl = (rawUrl: string, newChapterNum: number): string => {
+  // Loại bỏ query params trước khi phân tách URL
+  let baseUrl = rawUrl;
+  let queryParams = "";
+  if (rawUrl.includes("?")) {
+      const partsArr = rawUrl.split("?");
+      baseUrl = partsArr[0];
+      queryParams = "?" + partsArr[1];
+  }
+
+  const parts = baseUrl.split("/");
   let foundIndex = -1;
   let prefix = "";
   let oldNumStr = "";
@@ -37,14 +47,13 @@ const generateSmartUrl = (originalUrl: string, newChapterNum: number): string =>
     }
   }
 
-  // Nếu không tìm thấy pattern nào khớp, trả về URL gốc (hoặc xử lý nối đuôi nếu cần)
   if (foundIndex === -1) {
       // Fallback đơn giản: nối thêm /chuong-X
-      const baseUrl = originalUrl.replace(/\/$/, "").replace(/\.html$/, "");
-      if (originalUrl.includes("truyenfull")) {
-          return `${baseUrl}/chuong-${newChapterNum}/`;        
+      const cleanBase = baseUrl.replace(/\/$/, "").replace(/\.html$/, "");
+      if (baseUrl.includes("truyenfull")) {
+          return `${cleanBase}/chuong-${newChapterNum}/${queryParams}`;        
       }
-      return `${baseUrl}/chuong-${newChapterNum}.html`;
+      return `${cleanBase}/chuong-${newChapterNum}.html${queryParams}`;
   }
 
   // 2. Xử lý Zero Padding (Giữ nguyên định dạng 01, 001...)
@@ -59,7 +68,7 @@ const generateSmartUrl = (originalUrl: string, newChapterNum: number): string =>
 
   // 3. Thay thế phần tử đã tìm thấy
   parts[foundIndex] = `${prefix}${newNumStr}${suffix}`;
-  return parts.join("/");
+  return parts.join("/") + queryParams;
 };
 
 

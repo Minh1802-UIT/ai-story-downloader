@@ -24,7 +24,15 @@ interface BatchManagerProps {
 }
 
 // ---- Helper: Gen danh sách chapter URLs từ base URL ----
-function generateChapterUrls(baseUrl: string, start: number, end: number): string[] {
+function generateChapterUrls(rawUrl: string, start: number, end: number): string[] {
+  let baseUrl = rawUrl;
+  let queryParams = "";
+  if (rawUrl.includes("?")) {
+      const partsArr = rawUrl.split("?");
+      baseUrl = partsArr[0];
+      queryParams = "?" + partsArr[1];
+  }
+
   const urls: string[] = [];
   for (let i = start; i <= end; i++) {
     const parts = baseUrl.split("/");
@@ -40,12 +48,12 @@ function generateChapterUrls(baseUrl: string, start: number, end: number): strin
     if (!replaced) {
       const base = baseUrl.replace(/\/$/, "").replace(/\.html$/, "");
       if (baseUrl.includes("truyenfull")) {
-          urls.push(`${base}/chuong-${i}/`);
+          urls.push(`${base}/chuong-${i}/${queryParams}`);
       } else {
-          urls.push(`${base}/chuong-${i}.html`);
+          urls.push(`${base}/chuong-${i}.html${queryParams}`);
       }
     } else {
-      urls.push(parts.join("/"));
+      urls.push(parts.join("/") + queryParams);
     }
   }
   return urls;
