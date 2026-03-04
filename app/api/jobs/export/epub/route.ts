@@ -40,24 +40,9 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: false, error: "No downloaded content in this job yet." }, { status: 404 });
     }
 
-    // Chuyển URL thành Slug như trong ChapterCacheService
-    const urlToSlug = (url: string): string => {
-      try {
-        const pathname = new URL(url).pathname;
-        const parts = pathname.split("/").filter(Boolean);
-        const slug = parts[parts.length - 2] || parts[parts.length - 1] || url;
-        return slug.replace(/\.html$/, "");
-      } catch {
-        return encodeURIComponent(url).slice(0, 100);
-      }
-    };
-
-    const extractChapterNumber = (url: string): number | null => {
-      const match = url.match(/(?:chuong|chapter|page)[/-](\d+)/i);
-      return match ? parseInt(match[1]) : null;
-    };
-
-    const storySlug = urlToSlug(storyUrl || downloadedUrls[0]);
+    const { urlToSlug, extractChapterNumber } = await import("../../_helpers");
+    // Slug trong DB được tính từ URL chapter → dùng downloadedUrls[0]
+    const storySlug = urlToSlug(downloadedUrls[0] || storyUrl);
     const chapterNums = downloadedUrls.map(extractChapterNumber).filter(Boolean) as number[];
 
     // Tìm DB story cache

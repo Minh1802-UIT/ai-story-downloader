@@ -39,23 +39,45 @@ export async function GET(request: Request) {
     }
 
     // 2. Chuyển URL thành Slug như trong ChapterCacheService
+    // MonkeyDTruyen: /story-slug/1.html → lấy phần dir 'story-slug'
+    // TruyenFull:    /story-slug/chuong-1 → lấy phần dir 'story-slug'
     const urlToSlug = (url: string): string => {
       try {
         const pathname = new URL(url).pathname;
         const parts = pathname.split("/").filter(Boolean);
-        const slug = parts[parts.length - 2] || parts[parts.length - 1] || url;
-        return slug.replace(/\.html$/, "");
+
+        if (parts.length >= 2) {
+          const lastPart = parts[parts.length - 1];
+          const isChapterPart =
+            /^\d+(\.html)?$/.test(lastPart) ||
+            /(?:chuong|chapter|page)[/-](\d+)/i.test(lastPart);
+          if (isChapterPart) {
+            return parts[parts.length - 2].replace(/\.html$/, "");
+          }
+        }
+        return parts[parts.length - 1].replace(/\.html$/, "") || encodeURIComponent(url).slice(0, 100);
       } catch {
         return encodeURIComponent(url).slice(0, 100);
       }
     };
 
     const extractChapterNumber = (url: string): number | null => {
-      const match = url.match(/(?:chuong|chapter|page)[/-](\d+)/i);
-      return match ? parseInt(match[1]) : null;
+      // Pattern chuẩn (TruyenFull)
+      const stdMatch = url.match(/(?:chuong|chapter|page)[/-](\d+)/i);
+      if (stdMatch) return parseInt(stdMatch[1]);
+      // Fallback: lấy số từ cuối path (MonkeyDTruyen: /123.html)
+      try {
+        const pathname = new URL(url).pathname;
+        const lastSegment = pathname.split("/").filter(Boolean).pop() || "";
+        const numMatch = lastSegment.match(/^(\d+)(\.html)?$/);
+        if (numMatch) return parseInt(numMatch[1]);
+      } catch { /* ignore */ }
+      return null;
     };
 
-    const storySlug = urlToSlug(storyUrl || downloadedUrls[0]);
+    // Slug trong DB được tính từ URL chapter (do ChapterCacheService lưu từ URL chương)
+    // → Dùng downloadedUrls[0] để tính slug đúng, không dùng storyUrl (trang index)
+    const storySlug = urlToSlug(downloadedUrls[0] || storyUrl);
     
     // Preview Limit: Chỉ lấy chương 1 đến 5 để đỡ nặng tải
     const chapterNumsRaw = downloadedUrls.map(extractChapterNumber).filter(Boolean) as number[];
