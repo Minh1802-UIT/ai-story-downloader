@@ -23,6 +23,7 @@ import { useStoryExtractor } from "@/hooks/useStoryExtractor";
 import { useBatchManager } from "@/hooks/useBatchManager";
 import { useAIStudio } from "@/hooks/useAIStudio";
 import { useTTS } from "@/hooks/useTTS";
+import { useJobQueue } from "@/hooks/useJobQueue";
 
 // --- Icons ---
 const Icons = {
@@ -183,6 +184,8 @@ export default function Home() {
     downloadTask,
     downloadAllTasks,
   } = useTaskManager();
+
+  const jobQueue = useJobQueue();
 
   const {
     url,
@@ -378,8 +381,14 @@ export default function Home() {
                   </div>
                 )}
                 {tab === "batch" && (
-                  <div className="flex items-center justify-center gap-2">
+                  <div className="flex items-center justify-center gap-2 relative">
                     <Icons.Layers className="w-4 h-4" /> <span>Batch</span>
+                    {(jobQueue.status === "processing" || jobQueue.status === "creating") && (
+                      <span className="absolute top-0 right-[-10px] -mt-1 flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+                      </span>
+                    )}
                   </div>
                 )}
                 {tab === "ai" && (
@@ -427,6 +436,7 @@ export default function Home() {
                 setEndChapter={setEndChapter}
                 loading={batchLoading}
                 onRunBatch={handleBatchDownload}
+                jobQueue={jobQueue}
               />
             )}
 

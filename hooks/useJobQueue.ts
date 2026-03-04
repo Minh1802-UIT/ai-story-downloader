@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { supabase } from "@src/config/supabase";
 
 export type QueueStatus = "idle" | "creating" | "processing" | "completed" | "failed";
@@ -33,6 +33,21 @@ export function useJobQueue(): UseJobQueueReturn {
     setTotal(0);
     isRunning.current = false;
   }, []);
+
+  // Cảnh báo khi người dùng định đóng trang
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      // Nếu job đang chạy (chuẩn bị hoặc đang tải), hiển thị cảnh báo
+      if (status === "creating" || status === "processing") {
+        e.preventDefault();
+        e.returnValue = ""; // Required for Chrome/modern browsers
+        return "";          // Required for legacy browsers
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [status]);
 
   // Polling loop: gọi /api/process-job liên tục cho đến khi done
   const pollChunks = useCallback(async (id: string) => {

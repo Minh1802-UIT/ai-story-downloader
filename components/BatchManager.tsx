@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { useJobQueue } from "@/hooks/useJobQueue";
+import { QueueStatus } from "@/hooks/useJobQueue";
 
 // Props interface definitions
 interface BatchManagerProps {
@@ -13,6 +13,14 @@ interface BatchManagerProps {
   setEndChapter: (num: number) => void;
   loading: boolean;
   onRunBatch: () => void;
+  jobQueue: {
+    jobId: string | null;
+    status: QueueStatus;
+    progress: number;
+    total: number;
+    startJob: (payload: any) => Promise<void>;
+    reset: () => void;
+  };
 }
 
 // ---- Helper: Gen danh sách chapter URLs từ base URL ----
@@ -55,9 +63,10 @@ export default function BatchManager({
   setEndChapter,
   loading,
   onRunBatch,
+  jobQueue,
 }: BatchManagerProps) {
   const [warning, setWarning] = React.useState<string | null>(null);
-  const { status, progress, total, startJob, reset, jobId } = useJobQueue();
+  const { status, progress, total, startJob, reset, jobId } = jobQueue;
 
   React.useEffect(() => {
     if (!batchStoryUrl) { setWarning(null); return; }
