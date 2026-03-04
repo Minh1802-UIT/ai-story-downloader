@@ -1,9 +1,10 @@
 import { supabase, createAuthClient } from "@src/config/supabase";
 import { storyService } from "@src/application/services/StoryService";
 
-// Số chương xử lý mỗi "chunk" — chạy song song
-const CHUNK_SIZE = 10;
-const CHUNK_DELAY_MS = 500;
+// Số chương xử lý mỗi "chunk" — chạy song song (Đồng bộ với BatchConfig)
+const CHUNK_SIZE = 3;
+const CHUNK_DELAY_MS = 1500;
+const MAX_RETRIES = 3;
 
 export type JobType = "BATCH_DOWNLOAD";
 export type JobStatus = "QUEUED" | "PROCESSING" | "COMPLETED" | "FAILED";
@@ -121,23 +122,39 @@ export async function processNextChunk(
       .eq("id", job.user_id);
   }
 
-  // 5. Xử lý SONG SONG tất cả chương trong chunk
+  // 5. Xử lý SONG SONG tất cả chương trong chunk với logic Retry (Chống DDOS/Rate Limit)
   const newDownloadedUrls = [...downloadedUrls];
   let newProcessedCount = processedCount;
   let failedInChunk = 0;
 
   await Promise.all(
     chunkUrls.map(async (chapterUrl) => {
-      try {
-        // Vô hiệu hoá AI cho luồng Batch Download (nhanh gấp nhiều lần)
-        const skipAi = job.type === "BATCH_DOWNLOAD";
-        const result = await storyService.getContent(chapterUrl, skipAi);
-        
-        newDownloadedUrls.push(chapterUrl);
-        console.log(`[Job ${jobId}] Processed: ${result.title}`);
-      } catch (err) {
-        failedInChunk++;
-        console.error(`[Job ${jobId}] Failed chapter ${chapterUrl}:`, err);
+      let success = false;
+      let attempt = 0;
+      
+      while (attempt < MAX_RETRIES && !success) {
+        try {
+          attempt++;
+          // Vô hiệu hoá AI cho luồng Batch Download (nhanh gấp nhiều lần)
+          const skipAi = job.type === "BATCH_DOWNLOAD";
+          const result = await storyService.getContent(chapterUrl, skipAi);
+          
+          if (result.content && result.content.startsWith("Lỗi")) {
+              throw new Error(result.content);
+          }
+          
+          newDownloadedUrls.push(chapterUrl);
+          console.log(`[Job ${jobId}] Processed: ${result.title}`);
+          success = true;
+        } catch (err) {
+          console.error(`[Job ${jobId}] Lần ${attempt}/${MAX_RETRIES} Failed chapter ${chapterUrl}:`, err);
+          if (attempt >= MAX_RETRIES) {
+            failedInChunk++;
+          } else {
+            // Giãn cách thử lại
+            await new Promise(r => setTimeout(r, 1000));
+          }
+        }
       }
     })
   );
